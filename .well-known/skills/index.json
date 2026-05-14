@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "skills": [
+    {
+      "name": "creatorcrawl",
+      "description": "Use this skill whenever the user wants to research, audit, analyse, monitor, scrape, or extract data from social media on TikTok, Instagram, YouTube, LinkedIn, Twitter (X), or Reddit. Trigger contexts include creator research, influencer audits, viral content analysis, trending hashtag research, competitor monitoring, follower and engagement analytics, post and video transcripts, comment scraping, ad library lookups, profile data extraction, social media intelligence, content idea generation from trending posts, brand mention tracking, hashtag performance, channel analytics, creator discovery for influencer marketing, content downloads, TikTok trends, Instagram reels analysis, YouTube channel analytics, LinkedIn company posts and ad library, Twitter conversation analysis, Reddit subreddit monitoring, social listening, and any structured social media data extraction request. This skill uses the CreatorCrawl MCP server at app.creatorcrawl.com/api/mcp (60+ tools across six platforms) or the @creatorcrawl/sdk npm package for direct API access.",
+      "files": [
+        "SKILL.md"
+      ]
+    }
+  ]
+}
