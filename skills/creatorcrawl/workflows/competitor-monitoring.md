@@ -39,7 +39,13 @@ twitter_profile({ handle })
 linkedin_company({ url })
 ```
 
-Record: followers, post count, engagement baseline.
+Returns `{ data: Creator, meta }`. Record from `structuredContent.data`:
+
+- `data.follower_count` (canonical, snake_case)
+- `data.post_count`
+- `data.verified` + `data.verified_tier`
+- `data.created_at` (ISO 8601 UTC)
+- engagement baseline (calc from step 3)
 
 ### Step 3: Pull recent posts (last 30-90 days)
 
@@ -51,15 +57,17 @@ twitter_user_tweets({ handle, limit: 50 })
 linkedin_company_posts({ url, limit: 30 })
 ```
 
+Returns `{ data: Post[], page: { cursor, has_more }, meta }`. Paginate via `page.cursor` if `page.has_more` is true.
+
 ### Step 4: Analyse what they're doing
 
-For each platform, compute:
+For each platform, compute from the `Post[]`:
 
-- **Posting frequency** — posts per week trend (up/down)
-- **Content mix** — what topics / formats / hashtags appear most
-- **Engagement winners** — top 3 posts by engagement rate (not absolute)
-- **Engagement floor** — bottom 3 posts (what's not working)
-- **CTAs** — what they're driving traffic to (their site, app downloads, etc)
+- **Posting frequency** — bucket `post.created_at` by week
+- **Content mix** — group by `post.type`, tally `post.hashtags`
+- **Engagement winners** — top 3 by `(like_count + comment_count) / follower_count`, not absolute counts
+- **Engagement floor** — bottom 3 by same metric
+- **CTAs** — scan `post.text` for links / mentions; check `post.is_ad` and `post.is_sponsored` flags
 
 ### Step 5: Detect changes vs baseline
 

@@ -54,17 +54,17 @@ youtube_channel({ handle })
 twitter_profile({ handle })
 ```
 
-Drop any outside the target follower range.
+Each returns `{ data: Creator, meta }`. Drop any where `data.follower_count` is outside the target range. Also drop `data.is_private === true`.
 
 ### Step 3: Score on engagement rate
 
-Fake influence is rampant. Engagement rate (likes + comments / followers) is the truth-teller. For each candidate, sample 5 recent posts:
+Fake influence is rampant. Engagement rate is the truth-teller. For each candidate, sample 5 recent posts:
 
 ```
 tiktok_profile_videos({ handle, limit: 5 })
 ```
 
-Compute average engagement rate. Benchmarks:
+For each `Post` in `structuredContent.data`, compute `(post.like_count + post.comment_count) / creator.follower_count` and average across the 5 posts. Benchmarks:
 - Nano (1K-10K): 5-10%+ healthy
 - Micro (10K-100K): 3-6%
 - Mid (100K-1M): 1-3%
@@ -75,10 +75,10 @@ Drop creators well below these benchmarks — they may have inflated follower co
 ### Step 4: Vet for fit
 
 For each remaining creator:
-- Check bio / channel-about for brand alignment
-- Scan top 5 recent post captions — does the content match the brief?
-- Check for red flags (controversy, off-brand topics, inactive)
-- Check geography (creators in user's target market)
+- Check `data.bio` for brand alignment (note: bio is always `data.bio` now — never `signature` / `biography` / `description` / `about`)
+- Scan top 5 recent `post.text` (captions / titles / tweet body) — does the content match the brief?
+- Check for red flags (controversy, off-brand topics, `data.created_at` shows new account, inactivity inferred from `post.created_at` gaps)
+- Check geography — `data.region` / `data.language` / `data.location` on Creator
 
 ### Step 5: Score and rank
 
@@ -119,6 +119,6 @@ Posts 4x/week, mostly 30-second talking-head motivation content. Audience skews 
 
 - **Don't trust follower count alone** — bought followers are common. Engagement rate is the truth.
 - **Hashtag search can mislead** — high-volume hashtags surface generic content. Combine with keyword search.
-- **Skip creators who never reply to comments** — they won't be responsive partners either. Check `tiktok_comments` on their top post for creator replies.
+- **Skip creators who never reply to comments** — they won't be responsive partners either. Check `tiktok_comments` on their top post and filter for `is_author_reply: true`.
 - **Geography is hard** — check bio + post-language. Not all "US-based" creators actually live there.
 - **Avoid micro-influencers with all-promo feeds** — they've already saturated. Look for creators with 70% organic, 30% sponsored.
