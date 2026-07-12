@@ -9,7 +9,7 @@ Once installed, your agent will autonomously invoke this skill whenever you ask 
 ### Universal — works for any agent (recommended)
 
 ```bash
-npx skillkit@latest install creatorcrawl/creatorcrawl-skill
+npx --yes skillkit@latest install creatorcrawl/creatorcrawl-skill --all --global --yes
 ```
 
 This auto-detects supported agents and installs the complete skill folder, including its bundled CreatorCrawl CLI.
