@@ -3400,6 +3400,89 @@ var {
   Help
 } = import_index.default;
 
+// src/auth.ts
+var import_node_child_process = require("child_process");
+var import_node_fs = require("fs");
+var import_promises = require("fs/promises");
+var import_node_os = require("os");
+var import_node_path = require("path");
+var import_promises2 = require("readline/promises");
+function credentialsPath() {
+  const configHome = process.env.XDG_CONFIG_HOME ?? (0, import_node_path.join)((0, import_node_os.homedir)(), ".config");
+  return (0, import_node_path.join)(configHome, "creatorcrawl", "credentials.json");
+}
+function readStoredApiKey() {
+  try {
+    const content = (0, import_node_fs.readFileSync)(credentialsPath(), "utf8");
+    const credentials = JSON.parse(content);
+    return credentials.apiKey;
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return void 0;
+    throw error;
+  }
+}
+async function saveApiKey(apiKey) {
+  const path = credentialsPath();
+  await (0, import_promises.mkdir)((0, import_node_path.dirname)(path), { recursive: true, mode: 448 });
+  await (0, import_promises.writeFile)(path, `${JSON.stringify({ apiKey })}
+`, { mode: 384 });
+  await (0, import_promises.chmod)(path, 384);
+}
+function openApiKeysPage() {
+  const url = "https://app.creatorcrawl.com/api-keys";
+  const command = process.platform === "darwin" ? ["open", url] : process.platform === "win32" ? ["cmd", "/c", "start", "", url] : ["xdg-open", url];
+  const child = (0, import_node_child_process.spawn)(command[0], command.slice(1), { detached: true, stdio: "ignore" });
+  child.on("error", () => void 0);
+  child.unref();
+}
+async function promptForApiKey() {
+  if (!process.stdin.isTTY) {
+    throw new Error("Interactive login requires a terminal. Set CREATORCRAWL_API_KEY instead.");
+  }
+  const readline = (0, import_promises2.createInterface)({ input: process.stdin, output: process.stdout });
+  process.stdout.write("CreatorCrawl API key: ");
+  if (process.platform !== "win32") (0, import_node_child_process.spawnSync)("stty", ["-echo"], { stdio: ["inherit", "ignore", "inherit"] });
+  try {
+    return (await readline.question("")).trim();
+  } finally {
+    if (process.platform !== "win32") (0, import_node_child_process.spawnSync)("stty", ["echo"], { stdio: ["inherit", "ignore", "inherit"] });
+    readline.close();
+    process.stdout.write("\n");
+  }
+}
+function validateApiKey(apiKey) {
+  if (!/^sk_live_[a-f0-9]{64}$/.test(apiKey)) {
+    throw new Error("Invalid CreatorCrawl API key format.");
+  }
+}
+function registerAuth(program3) {
+  const auth = program3.command("auth").description("Manage CLI authentication");
+  auth.command("login").description("Save a CreatorCrawl API key").option("--api-key <key>", "API key for non-interactive setup").option("--no-browser", "Do not open the API keys page").action(async (options, command) => {
+    const apiKeyOption = command.optsWithGlobals().apiKey;
+    if (!apiKeyOption && options.browser) {
+      console.log("Create or copy an API key from https://app.creatorcrawl.com/api-keys");
+      openApiKeysPage();
+    }
+    const apiKey = apiKeyOption ?? process.env.CREATORCRAWL_API_KEY ?? await promptForApiKey();
+    validateApiKey(apiKey);
+    await saveApiKey(apiKey);
+    console.log("CreatorCrawl authentication saved.");
+  });
+  auth.command("status").description("Show authentication status").option("--json", "Print machine-readable JSON").action(async (options) => {
+    const source = process.env.CREATORCRAWL_API_KEY ? "environment" : readStoredApiKey() ? "stored" : null;
+    if (options.json) {
+      console.log(JSON.stringify({ authenticated: source !== null, source }));
+    } else {
+      console.log(source ? `Authenticated using ${source} credentials.` : "Not authenticated.");
+    }
+    if (!source) process.exitCode = 1;
+  });
+  auth.command("logout").description("Remove the saved CLI credential").action(async () => {
+    await (0, import_promises.rm)(credentialsPath(), { force: true });
+    console.log("CreatorCrawl authentication removed.");
+  });
+}
+
 // src/commands/instagram.ts
 function registerInstagram(program3, getClient2) {
   const instagram = program3.command("instagram").description("Instagram endpoints");
@@ -3441,18 +3524,48 @@ function registerReddit(program3, getClient2) {
   reddit.command("comments <url>").description("Get comments on a Reddit post").action((url) => run(() => getClient2().reddit.postComments({ url })));
 }
 
+// src/handles.ts
+function normalizeTikTokHandle(input) {
+  const value = input.trim();
+  if (!value) throw new Error("TikTok handle is required.");
+  if (/^https?:\/\//i.test(value)) {
+    const url = new URL(value);
+    if (!/(^|\.)tiktok\.com$/i.test(url.hostname)) {
+      throw new Error("Expected a TikTok profile URL or handle.");
+    }
+    const segment = url.pathname.split("/").find((part) => part.startsWith("@"));
+    if (!segment || segment.length === 1) {
+      throw new Error("TikTok profile URL does not contain a handle.");
+    }
+    return decodeURIComponent(segment.slice(1));
+  }
+  return value.replace(/^@/, "");
+}
+
 // src/commands/tiktok.ts
 function registerTiktok(program3, getClient2) {
   const tiktok = program3.command("tiktok").description("TikTok endpoints");
-  tiktok.command("profile <handle>").description("Get a TikTok profile by handle").action((handle) => run(() => getClient2().tiktok.profile({ handle })));
-  tiktok.command("videos <handle>").description("Get a TikTok user's recent videos").action((handle) => run(() => getClient2().tiktok.profileVideos({ handle })));
+  tiktok.command("profile <handle>").description("Get a TikTok profile by handle").action(
+    (handle) => run(() => getClient2().tiktok.profile({ handle: normalizeTikTokHandle(handle) }))
+  );
+  tiktok.command("videos <handle>").description("Get a TikTok user's recent videos").action(
+    (handle) => run(() => getClient2().tiktok.profileVideos({ handle: normalizeTikTokHandle(handle) }))
+  );
   tiktok.command("video <url>").description("Get info for a single TikTok video").action((url) => run(() => getClient2().tiktok.videoInfo({ url })));
   tiktok.command("transcript <url>").description("Get the transcript of a TikTok video").action((url) => run(() => getClient2().tiktok.transcript({ url })));
   tiktok.command("comments <url>").description("Get comments on a TikTok video").action((url) => run(() => getClient2().tiktok.comments({ url })));
-  tiktok.command("creator-transcripts <handle>").description("Bulk transcripts of a creator's recent videos").action((handle) => run(() => getClient2().tiktok.creatorTranscripts({ handle })));
-  tiktok.command("followers <handle>").description("Get a user's followers").action((handle) => run(() => getClient2().tiktok.followers({ handle })));
-  tiktok.command("following <handle>").description("Get accounts a user follows").action((handle) => run(() => getClient2().tiktok.following({ handle })));
-  tiktok.command("live <handle>").description("Get a user's live stream info").action((handle) => run(() => getClient2().tiktok.live({ handle })));
+  tiktok.command("creator-transcripts <handle>").description("Bulk transcripts of a creator's recent videos").action(
+    (handle) => run(() => getClient2().tiktok.creatorTranscripts({ handle: normalizeTikTokHandle(handle) }))
+  );
+  tiktok.command("followers <handle>").description("Get a user's followers").action(
+    (handle) => run(() => getClient2().tiktok.followers({ handle: normalizeTikTokHandle(handle) }))
+  );
+  tiktok.command("following <handle>").description("Get accounts a user follows").action(
+    (handle) => run(() => getClient2().tiktok.following({ handle: normalizeTikTokHandle(handle) }))
+  );
+  tiktok.command("live <handle>").description("Get a user's live stream info").action(
+    (handle) => run(() => getClient2().tiktok.live({ handle: normalizeTikTokHandle(handle) }))
+  );
   tiktok.command("song <clipId>").description("Get details for a TikTok song / sound").action((clipId) => run(() => getClient2().tiktok.songDetails({ clipId })));
   tiktok.command("song-videos <clipId>").description("Get videos that use a TikTok song / sound").action((clipId) => run(() => getClient2().tiktok.songVideos({ clipId })));
   tiktok.command("search <query>").description("Search TikTok by keyword").action((query) => run(() => getClient2().tiktok.searchKeyword({ query })));
@@ -3496,10 +3609,10 @@ function registerYoutube(program3, getClient2) {
 var program2 = new Command();
 program2.name("creatorcrawl").description(
   "Scrape TikTok, Instagram, YouTube, LinkedIn, Twitter/X, and Reddit from your terminal."
-).version("0.3.1").option("-k, --api-key <key>", "CreatorCrawl API key (or set CREATORCRAWL_API_KEY env)").option("--pretty", "Pretty-print JSON output (default: compact)");
+).version("0.3.2").option("-k, --api-key <key>", "CreatorCrawl API key (or set CREATORCRAWL_API_KEY env)").option("--pretty", "Pretty-print JSON output (default: compact)");
 function getClient() {
   const opts = program2.opts();
-  const apiKey = opts.apiKey ?? process.env.CREATORCRAWL_API_KEY;
+  const apiKey = opts.apiKey ?? process.env.CREATORCRAWL_API_KEY ?? readStoredApiKey();
   if (!apiKey) {
     console.error("Error: API key required. Pass --api-key or set CREATORCRAWL_API_KEY.");
     console.error("Get a free key (250 credits) at https://creatorcrawl.com");
@@ -3526,6 +3639,7 @@ async function run(fn) {
     process.exit(1);
   }
 }
+registerAuth(program2);
 registerTiktok(program2, getClient);
 registerInstagram(program2, getClient);
 registerYoutube(program2, getClient);
@@ -3533,7 +3647,7 @@ registerLinkedIn(program2, getClient);
 registerTwitter(program2, getClient);
 registerReddit(program2, getClient);
 program2.parseAsync().catch((err) => {
-  console.error(err);
+  console.error(err instanceof Error ? `Error: ${err.message}` : "Unknown error");
   process.exit(1);
 });
 // Annotate the CommonJS export names for ESM import in node:
