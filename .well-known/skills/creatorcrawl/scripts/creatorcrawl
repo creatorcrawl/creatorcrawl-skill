@@ -3455,6 +3455,14 @@ function validateApiKey(apiKey) {
     throw new Error("Invalid CreatorCrawl API key format.");
   }
 }
+async function verifyApiKey(apiKey) {
+  const response = await fetch("https://app.creatorcrawl.com/api/validate-key", {
+    headers: { "x-api-key": apiKey }
+  });
+  if (!response.ok) {
+    throw new Error(response.status === 403 ? "Invalid CreatorCrawl API key." : `Authentication check failed (${response.status}).`);
+  }
+}
 function registerAuth(program3) {
   const auth = program3.command("auth").description("Manage CLI authentication");
   auth.command("login").description("Save a CreatorCrawl API key").option("--api-key <key>", "API key for non-interactive setup").option("--no-browser", "Do not open the API keys page").action(async (options, command) => {
@@ -3463,19 +3471,40 @@ function registerAuth(program3) {
       console.log("Create or copy an API key from https://app.creatorcrawl.com/api-keys");
       openApiKeysPage();
     }
-    const apiKey = apiKeyOption ?? process.env.CREATORCRAWL_API_KEY ?? await promptForApiKey();
+    const apiKey = apiKeyOption ?? await promptForApiKey();
     validateApiKey(apiKey);
+    await verifyApiKey(apiKey);
     await saveApiKey(apiKey);
     console.log("CreatorCrawl authentication saved.");
+    if (process.env.CREATORCRAWL_API_KEY && process.env.CREATORCRAWL_API_KEY !== apiKey) {
+      console.log("Warning: CREATORCRAWL_API_KEY is still set and overrides the saved credential.");
+      console.log("Run: unset CREATORCRAWL_API_KEY");
+    }
   });
   auth.command("status").description("Show authentication status").option("--json", "Print machine-readable JSON").action(async (options) => {
-    const source = process.env.CREATORCRAWL_API_KEY ? "environment" : readStoredApiKey() ? "stored" : null;
-    if (options.json) {
-      console.log(JSON.stringify({ authenticated: source !== null, source }));
-    } else {
-      console.log(source ? `Authenticated using ${source} credentials.` : "Not authenticated.");
+    const storedApiKey = readStoredApiKey();
+    const apiKey = process.env.CREATORCRAWL_API_KEY ?? storedApiKey;
+    const source = process.env.CREATORCRAWL_API_KEY ? "environment" : storedApiKey ? "stored" : null;
+    let authenticated = false;
+    if (apiKey) {
+      try {
+        await verifyApiKey(apiKey);
+        authenticated = true;
+      } catch {
+        authenticated = false;
+      }
     }
-    if (!source) process.exitCode = 1;
+    if (options.json) {
+      console.log(JSON.stringify({ authenticated, source }));
+    } else {
+      console.log(
+        authenticated ? `Authenticated using ${source} credentials.` : source ? `Invalid ${source} credentials.` : "Not authenticated."
+      );
+      if (source === "environment" && storedApiKey) {
+        console.log("CREATORCRAWL_API_KEY overrides the saved credential.");
+      }
+    }
+    if (!authenticated) process.exitCode = 1;
   });
   auth.command("logout").description("Remove the saved CLI credential").action(async () => {
     await (0, import_promises.rm)(credentialsPath(), { force: true });
@@ -3609,7 +3638,7 @@ function registerYoutube(program3, getClient2) {
 var program2 = new Command();
 program2.name("creatorcrawl").description(
   "Scrape TikTok, Instagram, YouTube, LinkedIn, Twitter/X, and Reddit from your terminal."
-).version("0.3.2").option("-k, --api-key <key>", "CreatorCrawl API key (or set CREATORCRAWL_API_KEY env)").option("--pretty", "Pretty-print JSON output (default: compact)");
+).version("0.3.4").option("-k, --api-key <key>", "CreatorCrawl API key (or set CREATORCRAWL_API_KEY env)").option("--pretty", "Pretty-print JSON output (default: compact)");
 function getClient() {
   const opts = program2.opts();
   const apiKey = opts.apiKey ?? process.env.CREATORCRAWL_API_KEY ?? readStoredApiKey();
