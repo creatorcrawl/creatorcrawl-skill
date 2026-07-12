@@ -12,7 +12,7 @@ Once installed, your agent will autonomously invoke this skill whenever you ask 
 npx skillkit@latest install creatorcrawl/creatorcrawl-skill
 ```
 
-This auto-detects every AI agent on your machine and installs the skill to all of them.
+This auto-detects supported agents and installs the complete skill folder, including its bundled CreatorCrawl CLI.
 
 Alternative universal installer:
 
@@ -33,44 +33,14 @@ npx agent-skills-cli add creatorcrawl/creatorcrawl-skill
 
 Restart your agent (or start a new session). The skill will activate automatically when your prompt matches its trigger description.
 
-## After install — set up the data source
+## After install
 
-The skill teaches your agent **how** to use CreatorCrawl. You also need the data source itself, which is one of:
+The CLI is bundled at `scripts/creatorcrawl`, so no second package installation is required. Node.js 18 or newer must be available.
 
-### CreatorCrawl MCP server (recommended for chat-driven workflows)
-
-```bash
-# Claude Code
-claude mcp add creatorcrawl --transport streamable-http \
-  --header x-api-key=YOUR_API_KEY \
-  -- https://app.creatorcrawl.com/api/mcp
-```
-
-For Cursor / Windsurf, add to your `mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "creatorcrawl": {
-      "type": "streamable-http",
-      "url": "https://app.creatorcrawl.com/api/mcp",
-      "headers": { "x-api-key": "YOUR_API_KEY" }
-    }
-  }
-}
-```
-
-### CreatorCrawl SDK (for code-driven workflows)
+Set the API key in the agent's environment:
 
 ```bash
-npm install @creatorcrawl/sdk
-```
-
-```ts
-import { CreatorCrawl } from '@creatorcrawl/sdk'
-
-const cc = new CreatorCrawl({ apiKey: process.env.CREATORCRAWL_API_KEY! })
-const profile = await cc.tiktok.profile({ handle: 'khaby.lame' })
+export CREATORCRAWL_API_KEY=cc_...
 ```
 
 Get an API key at [creatorcrawl.com](https://creatorcrawl.com). **250 credits free on signup, no card required.**
@@ -94,7 +64,7 @@ The agent reads `SKILL.md` plus on-demand workflow guides in `workflows/`:
 - **Twitter / X** — profile, tweets, transcripts, communities
 - **Reddit** — search, subreddits, post comments
 
-60+ tools total. See `SKILL.md` for the full reference.
+60+ operations are available through the bundled CLI. See `SKILL.md` for the full reference.
 
 ## Links
 

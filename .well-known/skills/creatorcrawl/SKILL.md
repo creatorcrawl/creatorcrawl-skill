@@ -1,7 +1,6 @@
 ---
 name: creatorcrawl
-description: Use this skill whenever the user wants to research, audit, analyse, monitor, scrape, or extract data from social media on TikTok, Instagram, YouTube, LinkedIn, Twitter (X), or Reddit. Trigger contexts include creator research, influencer audits, viral content analysis, trending hashtag research, competitor monitoring, follower and engagement analytics, post and video transcripts, comment scraping, ad library lookups, profile data extraction, social media intelligence, content idea generation from trending posts, brand mention tracking, hashtag performance, channel analytics, creator discovery for influencer marketing, content downloads, TikTok trends, Instagram reels analysis, YouTube channel analytics, LinkedIn company posts and ad library, Twitter conversation analysis, Reddit subreddit monitoring, social listening, and any structured social media data extraction request. This skill uses the CreatorCrawl MCP server at app.creatorcrawl.com/api/mcp (60+ tools across six platforms) or the @creatorcrawl/sdk npm package for direct API access.
-license: MIT
+description: Use this skill whenever the user wants to research, audit, analyse, monitor, scrape, or extract current structured data from TikTok, Instagram, YouTube, LinkedIn, Twitter/X, or Reddit. It bundles the CreatorCrawl CLI for creator research, influencer audits, viral-content analysis, trends, competitor monitoring, transcripts, comments, ads, profiles, posts, social listening, and cross-platform intelligence.
 ---
 
 # CreatorCrawl
@@ -39,35 +38,21 @@ Invoke this skill whenever the user asks you to:
 
 If the user asks any social-media question that needs **real, current data** rather than your training-data knowledge, use this skill.
 
-## How CreatorCrawl works
+## Bundled CLI
 
-CreatorCrawl provides two complementary surfaces. Pick the one that matches the user's situation:
-
-### Option A: MCP server (recommended for agent-driven workflows)
-
-If the user has the CreatorCrawl MCP server installed, you have direct tool access. The server lives at `https://app.creatorcrawl.com/api/mcp` and exposes 60+ tools. Tool names follow the pattern `{platform}_{action}`, e.g. `tiktok_profile`, `instagram_post_info`, `youtube_transcript`, `linkedin_company`, `reddit_subreddit_posts`, `twitter_user_tweets`.
-
-The user can install the MCP server with:
+This skill includes a self-contained CLI at `scripts/creatorcrawl`. Resolve the path relative to this `SKILL.md` and invoke that file directly. Do not assume a global installation and do not configure an MCP server.
 
 ```bash
-# Claude Code
-claude mcp add creatorcrawl --transport streamable-http \
-  --header x-api-key=YOUR_API_KEY \
-  -- https://app.creatorcrawl.com/api/mcp
-
-# Cursor / Windsurf — add to mcp.json
-{
-  "mcpServers": {
-    "creatorcrawl": {
-      "type": "streamable-http",
-      "url": "https://app.creatorcrawl.com/api/mcp",
-      "headers": { "x-api-key": "YOUR_API_KEY" }
-    }
-  }
-}
+<skill-dir>/scripts/creatorcrawl --help
+<skill-dir>/scripts/creatorcrawl tiktok profile khaby.lame
+<skill-dir>/scripts/creatorcrawl youtube transcript 'https://youtu.be/...'
 ```
 
-### Option B: TypeScript SDK (for code/script workflows)
+The CLI requires Node.js 18 or newer. It reads `CREATORCRAWL_API_KEY` from the environment or accepts `--api-key`. Never print the key or persist it without explicit instruction.
+
+Default output is compact JSON. Add `--pretty` for human-readable output and use `jq` for deterministic filtering when available.
+
+## TypeScript SDK
 
 If the user wants to write code, use `@creatorcrawl/sdk` on npm:
 
@@ -214,7 +199,7 @@ Detailed workflow guides live in the `workflows/` directory. Read the one that m
 - **Competitor monitoring** — `workflows/competitor-monitoring.md`. Track competitor accounts over time.
 - **Influencer prospecting** — `workflows/influencer-prospecting.md`. Find creators for partnerships.
 
-## Tool reference (60+ MCP tools)
+## CLI reference
 
 ### TikTok
 - `tiktok_profile` — user info, stats, recent videos
