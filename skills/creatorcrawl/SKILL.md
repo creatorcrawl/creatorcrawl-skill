@@ -35,14 +35,14 @@ For a new machine, use the single hosted installer:
 curl -fsSL https://creatorcrawl.com/install.sh | sh
 ```
 
-Interactive terminals receive a hidden API-key prompt. The installer validates the key without consuming credits before saving it with owner-only permissions. Headless agents and CI can provide an existing secret non-interactively:
+Interactive terminals open browser-based OAuth Authorization Code + PKCE login and store refreshable credentials securely. Headless agents and CI can provide an existing API key non-interactively:
 
 ```bash
 curl -fsSL https://creatorcrawl.com/install.sh |
   CREATORCRAWL_API_KEY="$CREATORCRAWL_API_KEY" sh
 ```
 
-Do not invent, request, or mint credentials autonomously. The operator must provision the secret through the environment or complete the interactive login once.
+Do not invent, request, or mint credentials autonomously. The operator must provision the secret through the environment or approve the interactive OAuth login once.
 
 Useful authentication commands:
 

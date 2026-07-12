@@ -12,7 +12,7 @@ Use the hosted one-shot installer:
 curl -fsSL https://creatorcrawl.com/install.sh | sh
 ```
 
-It installs the CLI, detects supported agents, installs or updates this standalone skill, provides a runtime when necessary, and securely prompts for an API key in interactive terminals.
+It installs the CLI, detects supported agents, installs or updates this standalone skill, provides a runtime when necessary, and opens secure browser-based OAuth login in interactive terminals.
 
 For headless agents and CI, inject an existing API key:
 

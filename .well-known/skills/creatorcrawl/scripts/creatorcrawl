@@ -3039,7 +3039,7 @@ __export(index_exports, {
 });
 module.exports = __toCommonJS(index_exports);
 
-// node_modules/.pnpm/@creatorcrawl+sdk@0.2.0/node_modules/@creatorcrawl/sdk/dist/index.js
+// node_modules/.pnpm/@creatorcrawl+sdk@https+++codeload.github.com+creatorcrawl+sdk-typescript+tar.gz+e9e16e_6b3532413c34c0e17a7cd843e42c677c/node_modules/@creatorcrawl/sdk/dist/index.js
 var CreatorCrawlError = class extends Error {
   status;
   code;
@@ -3148,7 +3148,11 @@ var Reddit = class {
     return this.client.get("/reddit/search", params, options);
   }
   subredditDetails(params, options) {
-    return this.client.get("/reddit/subreddit/details", params, options);
+    return this.client.get(
+      "/reddit/subreddit/details",
+      params,
+      options
+    );
   }
   subredditPosts(params, options) {
     return this.client.get("/reddit/subreddit/posts", params, options);
@@ -3181,7 +3185,11 @@ var TikTok = class {
     return this.client.get("/tiktok/video/comments", params, options);
   }
   creatorTranscripts(params, options) {
-    return this.client.get("/tiktok/creator/transcripts", params, options);
+    return this.client.get(
+      "/tiktok/creator/transcripts",
+      params,
+      options
+    );
   }
   followers(params, options) {
     return this.client.get("/tiktok/user/followers", params, options);
@@ -3295,15 +3303,18 @@ var CreatorCrawl = class {
   linkedin;
   twitter;
   reddit;
-  apiKey;
+  authorizationHeaders;
   baseUrl;
   fetchImpl;
   timeout;
   constructor(options) {
-    if (!options.apiKey) {
-      throw new Error("CreatorCrawl: apiKey is required");
+    if (!options.apiKey && !options.accessToken) {
+      throw new Error("CreatorCrawl: apiKey or accessToken is required");
     }
-    this.apiKey = options.apiKey;
+    if (options.apiKey && options.accessToken) {
+      throw new Error("CreatorCrawl: provide apiKey or accessToken, not both");
+    }
+    this.authorizationHeaders = options.accessToken ? { authorization: `Bearer ${options.accessToken}` } : { "x-api-key": options.apiKey };
     this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");
     this.fetchImpl = options.fetch ?? globalThis.fetch;
     this.timeout = options.timeout ?? DEFAULT_TIMEOUT;
@@ -3328,7 +3339,7 @@ var CreatorCrawl = class {
       const response = await this.fetchImpl(url, {
         method: "GET",
         headers: {
-          "x-api-key": this.apiKey,
+          ...this.authorizationHeaders,
           accept: "application/json",
           "user-agent": "@creatorcrawl/sdk"
         },
@@ -3401,113 +3412,262 @@ var {
 } = import_index.default;
 
 // src/auth.ts
-var import_node_child_process = require("child_process");
+var import_node_crypto = require("crypto");
 var import_node_fs = require("fs");
 var import_promises = require("fs/promises");
+var import_node_http = require("http");
 var import_node_os = require("os");
 var import_node_path = require("path");
-var import_promises2 = require("readline/promises");
+var import_node_child_process = require("child_process");
+var APP_URL = "https://app.creatorcrawl.com";
+var KEYCHAIN_SERVICE = "creatorcrawl-cli";
+var KEYCHAIN_ACCOUNT = "oauth";
 function credentialsPath() {
   const configHome = process.env.XDG_CONFIG_HOME ?? (0, import_node_path.join)((0, import_node_os.homedir)(), ".config");
   return (0, import_node_path.join)(configHome, "creatorcrawl", "credentials.json");
 }
-function readStoredApiKey() {
+function keychainAvailable() {
+  return process.platform === "darwin" && (0, import_node_child_process.spawnSync)("security", ["help"], { stdio: "ignore" }).status === 0;
+}
+function readCredentials() {
+  if (keychainAvailable()) {
+    const result = (0, import_node_child_process.spawnSync)(
+      "security",
+      ["find-generic-password", "-a", KEYCHAIN_ACCOUNT, "-s", KEYCHAIN_SERVICE, "-w"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+    );
+    if (result.status === 0 && result.stdout.trim()) {
+      return JSON.parse(result.stdout.trim());
+    }
+  }
   try {
-    const content = (0, import_node_fs.readFileSync)(credentialsPath(), "utf8");
-    const credentials = JSON.parse(content);
-    return credentials.apiKey;
+    return JSON.parse((0, import_node_fs.readFileSync)(credentialsPath(), "utf8"));
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") return void 0;
     throw error;
   }
 }
-async function saveApiKey(apiKey) {
+async function saveCredentials(credentials) {
+  if (keychainAvailable()) {
+    const result = (0, import_node_child_process.spawnSync)(
+      "security",
+      [
+        "add-generic-password",
+        "-U",
+        "-a",
+        KEYCHAIN_ACCOUNT,
+        "-s",
+        KEYCHAIN_SERVICE,
+        "-w",
+        JSON.stringify(credentials)
+      ],
+      { stdio: "ignore" }
+    );
+    if (result.status !== 0) throw new Error("Could not save authentication in macOS Keychain.");
+    await (0, import_promises.rm)(credentialsPath(), { force: true });
+    return;
+  }
   const path = credentialsPath();
   await (0, import_promises.mkdir)((0, import_node_path.dirname)(path), { recursive: true, mode: 448 });
-  await (0, import_promises.writeFile)(path, `${JSON.stringify({ apiKey })}
+  await (0, import_promises.writeFile)(path, `${JSON.stringify(credentials)}
 `, { mode: 384 });
   await (0, import_promises.chmod)(path, 384);
 }
-function openApiKeysPage() {
-  const url = "https://app.creatorcrawl.com/api-keys";
+async function removeCredentials() {
+  if (keychainAvailable()) {
+    (0, import_node_child_process.spawnSync)(
+      "security",
+      ["delete-generic-password", "-a", KEYCHAIN_ACCOUNT, "-s", KEYCHAIN_SERVICE],
+      { stdio: "ignore" }
+    );
+  }
+  await (0, import_promises.rm)(credentialsPath(), { force: true });
+}
+async function revokeOAuth(credentials) {
+  await fetch(`${APP_URL}/api/oauth/revoke`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      token: credentials.refreshToken,
+      client_id: credentials.clientId
+    })
+  });
+}
+function openBrowser(url) {
   const command = process.platform === "darwin" ? ["open", url] : process.platform === "win32" ? ["cmd", "/c", "start", "", url] : ["xdg-open", url];
   const child = (0, import_node_child_process.spawn)(command[0], command.slice(1), { detached: true, stdio: "ignore" });
   child.on("error", () => void 0);
   child.unref();
 }
-async function promptForApiKey() {
-  if (!process.stdin.isTTY) {
-    throw new Error("Interactive login requires a terminal. Set CREATORCRAWL_API_KEY instead.");
+function base64Url(input) {
+  return input.toString("base64url");
+}
+async function oauthRequest(path, body) {
+  const isForm = body instanceof URLSearchParams;
+  const response = await fetch(`${APP_URL}/api${path}`, {
+    method: "POST",
+    headers: { "content-type": isForm ? "application/x-www-form-urlencoded" : "application/json" },
+    body: isForm ? body : JSON.stringify(body)
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(String(data.error_description ?? data.error ?? `OAuth request failed (${response.status})`));
   }
-  const readline = (0, import_promises2.createInterface)({ input: process.stdin, output: process.stdout });
-  process.stdout.write("CreatorCrawl API key: ");
-  if (process.platform !== "win32") (0, import_node_child_process.spawnSync)("stty", ["-echo"], { stdio: ["inherit", "ignore", "inherit"] });
-  try {
-    return (await readline.question("")).trim();
-  } finally {
-    if (process.platform !== "win32") (0, import_node_child_process.spawnSync)("stty", ["echo"], { stdio: ["inherit", "ignore", "inherit"] });
-    readline.close();
-    process.stdout.write("\n");
+  return data;
+}
+async function browserLogin() {
+  const callback = (0, import_node_http.createServer)();
+  await new Promise((resolve, reject) => {
+    callback.once("error", reject);
+    callback.listen(0, "127.0.0.1", resolve);
+  });
+  const port = callback.address().port;
+  const redirectUri = `http://127.0.0.1:${port}/callback`;
+  const registration = await oauthRequest("/oauth/register", {
+    client_name: "CreatorCrawl CLI",
+    redirect_uris: [redirectUri],
+    token_endpoint_auth_method: "none",
+    grant_types: ["authorization_code", "refresh_token"],
+    response_types: ["code"],
+    scope: "api offline_access"
+  });
+  const clientId = String(registration.client_id);
+  const verifier = base64Url((0, import_node_crypto.randomBytes)(48));
+  const challenge = base64Url((0, import_node_crypto.createHash)("sha256").update(verifier).digest());
+  const state = base64Url((0, import_node_crypto.randomBytes)(24));
+  const authorizeUrl = new URL(`${APP_URL}/api/oauth/authorize`);
+  authorizeUrl.search = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    scope: "api offline_access",
+    state
+  }).toString();
+  const codePromise = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      callback.close();
+      reject(new Error("OAuth login timed out."));
+    }, 5 * 60 * 1e3);
+    callback.on("request", (request, response) => {
+      const url = new URL(request.url ?? "/", redirectUri);
+      if (url.pathname !== "/callback") {
+        response.writeHead(404).end();
+        return;
+      }
+      clearTimeout(timeout);
+      response.setHeader("content-type", "text/html; charset=utf-8");
+      const returnedState = url.searchParams.get("state");
+      const error = url.searchParams.get("error");
+      const code2 = url.searchParams.get("code");
+      if (returnedState !== state || error || !code2) {
+        response.end("<h1>CreatorCrawl authorization failed</h1><p>You can close this window.</p>");
+        callback.close();
+        reject(new Error(error ?? "Invalid OAuth callback."));
+        return;
+      }
+      response.end("<h1>CreatorCrawl CLI authorized</h1><p>You can close this window.</p>");
+      callback.close();
+      resolve(code2);
+    });
+  });
+  console.log("Opening CreatorCrawl in your browser...");
+  console.log(`If it does not open, visit:
+${authorizeUrl.toString()}`);
+  openBrowser(authorizeUrl.toString());
+  const code = await codePromise;
+  const token = await oauthRequest(
+    "/oauth/token",
+    new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: clientId,
+      code,
+      redirect_uri: redirectUri,
+      code_verifier: verifier
+    })
+  );
+  return {
+    type: "oauth",
+    clientId,
+    accessToken: String(token.access_token),
+    refreshToken: String(token.refresh_token),
+    expiresAt: Date.now() + Number(token.expires_in) * 1e3
+  };
+}
+async function refreshOAuth(credentials) {
+  const token = await oauthRequest(
+    "/oauth/token",
+    new URLSearchParams({
+      grant_type: "refresh_token",
+      client_id: credentials.clientId,
+      refresh_token: credentials.refreshToken
+    })
+  );
+  const refreshed = {
+    ...credentials,
+    accessToken: String(token.access_token),
+    refreshToken: String(token.refresh_token),
+    expiresAt: Date.now() + Number(token.expires_in) * 1e3
+  };
+  await saveCredentials(refreshed);
+  return refreshed;
+}
+async function verifyCredential(credential) {
+  const headers = credential.accessToken ? { authorization: `Bearer ${credential.accessToken}` } : { "x-api-key": credential.apiKey };
+  const response = await fetch(`${APP_URL}/api/validate-key`, { headers });
+  return response.ok;
+}
+async function resolveCredential() {
+  if (process.env.CREATORCRAWL_API_KEY) {
+    return { apiKey: process.env.CREATORCRAWL_API_KEY, source: "environment" };
   }
+  const stored = readCredentials();
+  if (!stored) return void 0;
+  if (stored.type === "api-key") return { apiKey: stored.apiKey, source: "stored-api-key" };
+  const oauth = stored.expiresAt - Date.now() < 6e4 ? await refreshOAuth(stored) : stored;
+  return { accessToken: oauth.accessToken, source: "oauth" };
 }
 function validateApiKey(apiKey) {
-  if (!/^sk_live_[a-f0-9]{64}$/.test(apiKey)) {
-    throw new Error("Invalid CreatorCrawl API key format.");
-  }
-}
-async function verifyApiKey(apiKey) {
-  const response = await fetch("https://app.creatorcrawl.com/api/validate-key", {
-    headers: { "x-api-key": apiKey }
-  });
-  if (!response.ok) {
-    throw new Error(response.status === 403 ? "Invalid CreatorCrawl API key." : `Authentication check failed (${response.status}).`);
-  }
+  if (!/^sk_live_[a-f0-9]{64}$/.test(apiKey)) throw new Error("Invalid CreatorCrawl API key format.");
 }
 function registerAuth(program3) {
   const auth = program3.command("auth").description("Manage CLI authentication");
-  auth.command("login").description("Save a CreatorCrawl API key").option("--api-key <key>", "API key for non-interactive setup").option("--no-browser", "Do not open the API keys page").action(async (options, command) => {
-    const apiKeyOption = command.optsWithGlobals().apiKey;
-    if (!apiKeyOption && options.browser) {
-      console.log("Create or copy an API key from https://app.creatorcrawl.com/api-keys");
-      openApiKeysPage();
+  auth.command("login").description("Authenticate with CreatorCrawl in your browser").option("--api-key <key>", "Save an API key for non-interactive setup").action(async (options, command) => {
+    const apiKey = command.optsWithGlobals().apiKey;
+    if (apiKey) {
+      validateApiKey(apiKey);
+      const credential = { apiKey, source: "stored-api-key" };
+      if (!await verifyCredential(credential)) throw new Error("Invalid CreatorCrawl API key.");
+      await saveCredentials({ type: "api-key", apiKey });
+      console.log("CreatorCrawl API-key authentication saved.");
+      return;
     }
-    const apiKey = apiKeyOption ?? await promptForApiKey();
-    validateApiKey(apiKey);
-    await verifyApiKey(apiKey);
-    await saveApiKey(apiKey);
-    console.log("CreatorCrawl authentication saved.");
-    if (process.env.CREATORCRAWL_API_KEY && process.env.CREATORCRAWL_API_KEY !== apiKey) {
-      console.log("Warning: CREATORCRAWL_API_KEY is still set and overrides the saved credential.");
-      console.log("Run: unset CREATORCRAWL_API_KEY");
+    const credentials = await browserLogin();
+    await saveCredentials(credentials);
+    console.log("CreatorCrawl OAuth authentication saved securely.");
+    if (process.env.CREATORCRAWL_API_KEY) {
+      console.log("Warning: CREATORCRAWL_API_KEY overrides the OAuth login.");
     }
   });
   auth.command("status").description("Show authentication status").option("--json", "Print machine-readable JSON").action(async (options) => {
-    const storedApiKey = readStoredApiKey();
-    const apiKey = process.env.CREATORCRAWL_API_KEY ?? storedApiKey;
-    const source = process.env.CREATORCRAWL_API_KEY ? "environment" : storedApiKey ? "stored" : null;
+    let credential;
     let authenticated = false;
-    if (apiKey) {
-      try {
-        await verifyApiKey(apiKey);
-        authenticated = true;
-      } catch {
-        authenticated = false;
-      }
+    try {
+      credential = await resolveCredential();
+      authenticated = credential ? await verifyCredential(credential) : false;
+    } catch {
+      authenticated = false;
     }
-    if (options.json) {
-      console.log(JSON.stringify({ authenticated, source }));
-    } else {
-      console.log(
-        authenticated ? `Authenticated using ${source} credentials.` : source ? `Invalid ${source} credentials.` : "Not authenticated."
-      );
-      if (source === "environment" && storedApiKey) {
-        console.log("CREATORCRAWL_API_KEY overrides the saved credential.");
-      }
-    }
+    const source = credential?.source ?? null;
+    if (options.json) console.log(JSON.stringify({ authenticated, source }));
+    else console.log(authenticated ? `Authenticated using ${source}.` : "Not authenticated.");
     if (!authenticated) process.exitCode = 1;
   });
-  auth.command("logout").description("Remove the saved CLI credential").action(async () => {
-    await (0, import_promises.rm)(credentialsPath(), { force: true });
+  auth.command("logout").description("Remove saved CLI authentication").action(async () => {
+    const credentials = readCredentials();
+    if (credentials?.type === "oauth") await revokeOAuth(credentials);
+    await removeCredentials();
     console.log("CreatorCrawl authentication removed.");
   });
 }
@@ -3515,42 +3675,42 @@ function registerAuth(program3) {
 // src/commands/instagram.ts
 function registerInstagram(program3, getClient2) {
   const instagram = program3.command("instagram").description("Instagram endpoints");
-  instagram.command("profile <handle>").description("Get an Instagram profile by handle").action((handle) => run(() => getClient2().instagram.profile({ handle })));
-  instagram.command("basic-profile <userId>").description("Get a basic Instagram profile by numeric user ID").action((userId) => run(() => getClient2().instagram.basicProfile({ userId })));
-  instagram.command("posts <handle>").description("Get an Instagram user's recent posts").action((handle) => run(() => getClient2().instagram.posts({ handle })));
-  instagram.command("reels <handle>").description("Get an Instagram user's recent reels").action((handle) => run(() => getClient2().instagram.reels({ handle })));
-  instagram.command("post <url>").description("Get info for a single Instagram post").action((url) => run(() => getClient2().instagram.postInfo({ url })));
-  instagram.command("comments <url>").description("Get comments on an Instagram post").action((url) => run(() => getClient2().instagram.comments({ url })));
-  instagram.command("transcript <url>").description("Get the transcript of an Instagram reel").action((url) => run(() => getClient2().instagram.transcript({ url })));
-  instagram.command("highlights <handle>").description("List an Instagram user's story highlights").action((handle) => run(() => getClient2().instagram.storyHighlights({ handle })));
-  instagram.command("highlight <id>").description("Get the contents of one Instagram highlight by ID").action((id) => run(() => getClient2().instagram.highlightsDetails({ id })));
-  instagram.command("search-reels <query>").description("Search Instagram reels by keyword").action((query) => run(() => getClient2().instagram.searchReels({ query })));
-  instagram.command("embed <handle>").description("Get embeddable Instagram profile HTML").action((handle) => run(() => getClient2().instagram.embed({ handle })));
+  instagram.command("profile <handle>").description("Get an Instagram profile by handle").action((handle) => run(async () => (await getClient2()).instagram.profile({ handle })));
+  instagram.command("basic-profile <userId>").description("Get a basic Instagram profile by numeric user ID").action((userId) => run(async () => (await getClient2()).instagram.basicProfile({ userId })));
+  instagram.command("posts <handle>").description("Get an Instagram user's recent posts").action((handle) => run(async () => (await getClient2()).instagram.posts({ handle })));
+  instagram.command("reels <handle>").description("Get an Instagram user's recent reels").action((handle) => run(async () => (await getClient2()).instagram.reels({ handle })));
+  instagram.command("post <url>").description("Get info for a single Instagram post").action((url) => run(async () => (await getClient2()).instagram.postInfo({ url })));
+  instagram.command("comments <url>").description("Get comments on an Instagram post").action((url) => run(async () => (await getClient2()).instagram.comments({ url })));
+  instagram.command("transcript <url>").description("Get the transcript of an Instagram reel").action((url) => run(async () => (await getClient2()).instagram.transcript({ url })));
+  instagram.command("highlights <handle>").description("List an Instagram user's story highlights").action((handle) => run(async () => (await getClient2()).instagram.storyHighlights({ handle })));
+  instagram.command("highlight <id>").description("Get the contents of one Instagram highlight by ID").action((id) => run(async () => (await getClient2()).instagram.highlightsDetails({ id })));
+  instagram.command("search-reels <query>").description("Search Instagram reels by keyword").action((query) => run(async () => (await getClient2()).instagram.searchReels({ query })));
+  instagram.command("embed <handle>").description("Get embeddable Instagram profile HTML").action((handle) => run(async () => (await getClient2()).instagram.embed({ handle })));
 }
 
 // src/commands/linkedin.ts
 function registerLinkedIn(program3, getClient2) {
   const linkedin = program3.command("linkedin").description("LinkedIn endpoints");
-  linkedin.command("profile <url>").description("Get LinkedIn person profile by URL").action((url) => run(() => getClient2().linkedin.profile({ url })));
-  linkedin.command("company <url>").description("Get LinkedIn company page by URL").action((url) => run(() => getClient2().linkedin.company({ url })));
-  linkedin.command("company-posts <url>").description("Get recent posts from a LinkedIn company page").action((url) => run(() => getClient2().linkedin.companyPosts({ url })));
-  linkedin.command("post <url>").description("Get info for a single LinkedIn post").action((url) => run(() => getClient2().linkedin.post({ url })));
-  linkedin.command("ads <keyword>").description("Search the LinkedIn Ad Library by keyword (or pass a company name)").action((keyword) => run(() => getClient2().linkedin.adsSearch({ keyword })));
-  linkedin.command("ad <url>").description("Get info for a single LinkedIn ad").action((url) => run(() => getClient2().linkedin.ad({ url })));
+  linkedin.command("profile <url>").description("Get LinkedIn person profile by URL").action((url) => run(async () => (await getClient2()).linkedin.profile({ url })));
+  linkedin.command("company <url>").description("Get LinkedIn company page by URL").action((url) => run(async () => (await getClient2()).linkedin.company({ url })));
+  linkedin.command("company-posts <url>").description("Get recent posts from a LinkedIn company page").action((url) => run(async () => (await getClient2()).linkedin.companyPosts({ url })));
+  linkedin.command("post <url>").description("Get info for a single LinkedIn post").action((url) => run(async () => (await getClient2()).linkedin.post({ url })));
+  linkedin.command("ads <keyword>").description("Search the LinkedIn Ad Library by keyword (or pass a company name)").action((keyword) => run(async () => (await getClient2()).linkedin.adsSearch({ keyword })));
+  linkedin.command("ad <url>").description("Get info for a single LinkedIn ad").action((url) => run(async () => (await getClient2()).linkedin.ad({ url })));
 }
 
 // src/commands/reddit.ts
 function registerReddit(program3, getClient2) {
   const reddit = program3.command("reddit").description("Reddit endpoints");
-  reddit.command("search <query>").description("Search Reddit by keyword").action((query) => run(() => getClient2().reddit.search({ query })));
+  reddit.command("search <query>").description("Search Reddit by keyword").action((query) => run(async () => (await getClient2()).reddit.search({ query })));
   reddit.command("subreddit <subreddit>").description("Get details for a subreddit").action(
-    (subreddit) => run(() => getClient2().reddit.subredditDetails({ subreddit }))
+    (subreddit) => run(async () => (await getClient2()).reddit.subredditDetails({ subreddit }))
   );
-  reddit.command("subreddit-posts <subreddit>").description("Get recent posts from a subreddit").action((subreddit) => run(() => getClient2().reddit.subredditPosts({ subreddit })));
+  reddit.command("subreddit-posts <subreddit>").description("Get recent posts from a subreddit").action((subreddit) => run(async () => (await getClient2()).reddit.subredditPosts({ subreddit })));
   reddit.command("subreddit-search <subreddit> <query>").description("Search within a subreddit").action(
-    (subreddit, query) => run(() => getClient2().reddit.subredditSearch({ subreddit, query }))
+    (subreddit, query) => run(async () => (await getClient2()).reddit.subredditSearch({ subreddit, query }))
   );
-  reddit.command("comments <url>").description("Get comments on a Reddit post").action((url) => run(() => getClient2().reddit.postComments({ url })));
+  reddit.command("comments <url>").description("Get comments on a Reddit post").action((url) => run(async () => (await getClient2()).reddit.postComments({ url })));
 }
 
 // src/handles.ts
@@ -3575,79 +3735,81 @@ function normalizeTikTokHandle(input) {
 function registerTiktok(program3, getClient2) {
   const tiktok = program3.command("tiktok").description("TikTok endpoints");
   tiktok.command("profile <handle>").description("Get a TikTok profile by handle").action(
-    (handle) => run(() => getClient2().tiktok.profile({ handle: normalizeTikTokHandle(handle) }))
+    (handle) => run(async () => (await getClient2()).tiktok.profile({ handle: normalizeTikTokHandle(handle) }))
   );
   tiktok.command("videos <handle>").description("Get a TikTok user's recent videos").action(
-    (handle) => run(() => getClient2().tiktok.profileVideos({ handle: normalizeTikTokHandle(handle) }))
+    (handle) => run(async () => (await getClient2()).tiktok.profileVideos({ handle: normalizeTikTokHandle(handle) }))
   );
-  tiktok.command("video <url>").description("Get info for a single TikTok video").action((url) => run(() => getClient2().tiktok.videoInfo({ url })));
-  tiktok.command("transcript <url>").description("Get the transcript of a TikTok video").action((url) => run(() => getClient2().tiktok.transcript({ url })));
-  tiktok.command("comments <url>").description("Get comments on a TikTok video").action((url) => run(() => getClient2().tiktok.comments({ url })));
+  tiktok.command("video <url>").description("Get info for a single TikTok video").action((url) => run(async () => (await getClient2()).tiktok.videoInfo({ url })));
+  tiktok.command("transcript <url>").description("Get the transcript of a TikTok video").action((url) => run(async () => (await getClient2()).tiktok.transcript({ url })));
+  tiktok.command("comments <url>").description("Get comments on a TikTok video").action((url) => run(async () => (await getClient2()).tiktok.comments({ url })));
   tiktok.command("creator-transcripts <handle>").description("Bulk transcripts of a creator's recent videos").action(
-    (handle) => run(() => getClient2().tiktok.creatorTranscripts({ handle: normalizeTikTokHandle(handle) }))
+    (handle) => run(async () => (await getClient2()).tiktok.creatorTranscripts({ handle: normalizeTikTokHandle(handle) }))
   );
   tiktok.command("followers <handle>").description("Get a user's followers").action(
-    (handle) => run(() => getClient2().tiktok.followers({ handle: normalizeTikTokHandle(handle) }))
+    (handle) => run(async () => (await getClient2()).tiktok.followers({ handle: normalizeTikTokHandle(handle) }))
   );
   tiktok.command("following <handle>").description("Get accounts a user follows").action(
-    (handle) => run(() => getClient2().tiktok.following({ handle: normalizeTikTokHandle(handle) }))
+    (handle) => run(async () => (await getClient2()).tiktok.following({ handle: normalizeTikTokHandle(handle) }))
   );
   tiktok.command("live <handle>").description("Get a user's live stream info").action(
-    (handle) => run(() => getClient2().tiktok.live({ handle: normalizeTikTokHandle(handle) }))
+    (handle) => run(async () => (await getClient2()).tiktok.live({ handle: normalizeTikTokHandle(handle) }))
   );
-  tiktok.command("song <clipId>").description("Get details for a TikTok song / sound").action((clipId) => run(() => getClient2().tiktok.songDetails({ clipId })));
-  tiktok.command("song-videos <clipId>").description("Get videos that use a TikTok song / sound").action((clipId) => run(() => getClient2().tiktok.songVideos({ clipId })));
-  tiktok.command("search <query>").description("Search TikTok by keyword").action((query) => run(() => getClient2().tiktok.searchKeyword({ query })));
-  tiktok.command("users <query>").description("Search TikTok users").action((query) => run(() => getClient2().tiktok.searchUsers({ query })));
-  tiktok.command("top <query>").description("TikTok top search results (users + videos + sounds)").action((query) => run(() => getClient2().tiktok.searchTop({ query })));
-  tiktok.command("hashtag <hashtag>").description("Get videos under a TikTok hashtag").action((hashtag) => run(() => getClient2().tiktok.searchHashtag({ hashtag })));
-  tiktok.command("popular-creators").description("Popular TikTok creators (trending)").action(() => run(() => getClient2().tiktok.popularCreators()));
-  tiktok.command("popular-hashtags").description("Popular TikTok hashtags (trending)").action(() => run(() => getClient2().tiktok.popularHashtags()));
-  tiktok.command("popular-songs").description("Popular TikTok songs (trending)").action(() => run(() => getClient2().tiktok.popularSongs()));
-  tiktok.command("popular-videos").description("Popular TikTok videos (trending)").action(() => run(() => getClient2().tiktok.popularVideos()));
-  tiktok.command("trending [region]").description("Current TikTok trending feed for a region (e.g. US)").action((region) => run(() => getClient2().tiktok.trendingFeed({ region })));
+  tiktok.command("song <clipId>").description("Get details for a TikTok song / sound").action((clipId) => run(async () => (await getClient2()).tiktok.songDetails({ clipId })));
+  tiktok.command("song-videos <clipId>").description("Get videos that use a TikTok song / sound").action((clipId) => run(async () => (await getClient2()).tiktok.songVideos({ clipId })));
+  tiktok.command("search <query>").description("Search TikTok by keyword").action((query) => run(async () => (await getClient2()).tiktok.searchKeyword({ query })));
+  tiktok.command("users <query>").description("Search TikTok users").action((query) => run(async () => (await getClient2()).tiktok.searchUsers({ query })));
+  tiktok.command("top <query>").description("TikTok top search results (users + videos + sounds)").action((query) => run(async () => (await getClient2()).tiktok.searchTop({ query })));
+  tiktok.command("hashtag <hashtag>").description("Get videos under a TikTok hashtag").action((hashtag) => run(async () => (await getClient2()).tiktok.searchHashtag({ hashtag })));
+  tiktok.command("popular-creators").description("Popular TikTok creators (trending)").action(() => run(async () => (await getClient2()).tiktok.popularCreators()));
+  tiktok.command("popular-hashtags").description("Popular TikTok hashtags (trending)").action(() => run(async () => (await getClient2()).tiktok.popularHashtags()));
+  tiktok.command("popular-songs").description("Popular TikTok songs (trending)").action(() => run(async () => (await getClient2()).tiktok.popularSongs()));
+  tiktok.command("popular-videos").description("Popular TikTok videos (trending)").action(() => run(async () => (await getClient2()).tiktok.popularVideos()));
+  tiktok.command("trending [region]").description("Current TikTok trending feed for a region (e.g. US)").action((region) => run(async () => (await getClient2()).tiktok.trendingFeed({ region })));
 }
 
 // src/commands/twitter.ts
 function registerTwitter(program3, getClient2) {
   const twitter = program3.command("twitter").description("Twitter / X endpoints");
-  twitter.command("profile <handle>").description("Get Twitter profile by handle").action((handle) => run(() => getClient2().twitter.profile({ handle })));
-  twitter.command("tweet <url>").description("Get info for a single tweet").action((url) => run(() => getClient2().twitter.tweet({ url })));
-  twitter.command("tweets <handle>").description("Get a Twitter user's recent tweets").action((handle) => run(() => getClient2().twitter.userTweets({ handle })));
-  twitter.command("transcript <url>").description("Get the transcript of a video tweet").action((url) => run(() => getClient2().twitter.transcript({ url })));
-  twitter.command("community <url>").description("Get a Twitter community page").action((url) => run(() => getClient2().twitter.community({ url })));
-  twitter.command("community-tweets <url>").description("Get tweets from a Twitter community").action((url) => run(() => getClient2().twitter.communityTweets({ url })));
+  twitter.command("profile <handle>").description("Get Twitter profile by handle").action((handle) => run(async () => (await getClient2()).twitter.profile({ handle })));
+  twitter.command("tweet <url>").description("Get info for a single tweet").action((url) => run(async () => (await getClient2()).twitter.tweet({ url })));
+  twitter.command("tweets <handle>").description("Get a Twitter user's recent tweets").action((handle) => run(async () => (await getClient2()).twitter.userTweets({ handle })));
+  twitter.command("transcript <url>").description("Get the transcript of a video tweet").action((url) => run(async () => (await getClient2()).twitter.transcript({ url })));
+  twitter.command("community <url>").description("Get a Twitter community page").action((url) => run(async () => (await getClient2()).twitter.community({ url })));
+  twitter.command("community-tweets <url>").description("Get tweets from a Twitter community").action((url) => run(async () => (await getClient2()).twitter.communityTweets({ url })));
 }
 
 // src/commands/youtube.ts
 function registerYoutube(program3, getClient2) {
   const youtube = program3.command("youtube").description("YouTube endpoints");
-  youtube.command("channel <handle>").description("Get a YouTube channel by handle (or pass an @handle or channelId)").action((handle) => run(() => getClient2().youtube.channel({ handle })));
-  youtube.command("videos <handle>").description("Get a YouTube channel's recent videos").action((handle) => run(() => getClient2().youtube.channelVideos({ handle })));
-  youtube.command("shorts <handle>").description("Get a YouTube channel's recent shorts").action((handle) => run(() => getClient2().youtube.channelShorts({ handle })));
-  youtube.command("video <url>").description("Get info for a single YouTube video").action((url) => run(() => getClient2().youtube.video({ url })));
-  youtube.command("transcript <url>").description("Get the transcript of a YouTube video").action((url) => run(() => getClient2().youtube.transcript({ url })));
-  youtube.command("comments <url>").description("Get comments on a YouTube video").action((url) => run(() => getClient2().youtube.comments({ url })));
-  youtube.command("search <query>").description("Search YouTube by keyword").action((query) => run(() => getClient2().youtube.search({ query })));
-  youtube.command("search-hashtag <hashtag>").description("Search YouTube by hashtag").action((hashtag) => run(() => getClient2().youtube.searchHashtag({ hashtag })));
-  youtube.command("playlist <playlist_id>").description("Get YouTube playlist contents by playlist ID").action((playlist_id) => run(() => getClient2().youtube.playlist({ playlist_id })));
-  youtube.command("trending-shorts").description("Currently trending YouTube shorts").action(() => run(() => getClient2().youtube.trendingShorts()));
+  youtube.command("channel <handle>").description("Get a YouTube channel by handle (or pass an @handle or channelId)").action((handle) => run(async () => (await getClient2()).youtube.channel({ handle })));
+  youtube.command("videos <handle>").description("Get a YouTube channel's recent videos").action((handle) => run(async () => (await getClient2()).youtube.channelVideos({ handle })));
+  youtube.command("shorts <handle>").description("Get a YouTube channel's recent shorts").action((handle) => run(async () => (await getClient2()).youtube.channelShorts({ handle })));
+  youtube.command("video <url>").description("Get info for a single YouTube video").action((url) => run(async () => (await getClient2()).youtube.video({ url })));
+  youtube.command("transcript <url>").description("Get the transcript of a YouTube video").action((url) => run(async () => (await getClient2()).youtube.transcript({ url })));
+  youtube.command("comments <url>").description("Get comments on a YouTube video").action((url) => run(async () => (await getClient2()).youtube.comments({ url })));
+  youtube.command("search <query>").description("Search YouTube by keyword").action((query) => run(async () => (await getClient2()).youtube.search({ query })));
+  youtube.command("search-hashtag <hashtag>").description("Search YouTube by hashtag").action((hashtag) => run(async () => (await getClient2()).youtube.searchHashtag({ hashtag })));
+  youtube.command("playlist <playlist_id>").description("Get YouTube playlist contents by playlist ID").action((playlist_id) => run(async () => (await getClient2()).youtube.playlist({ playlist_id })));
+  youtube.command("trending-shorts").description("Currently trending YouTube shorts").action(() => run(async () => (await getClient2()).youtube.trendingShorts()));
 }
 
 // src/index.ts
 var program2 = new Command();
 program2.name("creatorcrawl").description(
   "Scrape TikTok, Instagram, YouTube, LinkedIn, Twitter/X, and Reddit from your terminal."
-).version("0.3.4").option("-k, --api-key <key>", "CreatorCrawl API key (or set CREATORCRAWL_API_KEY env)").option("--pretty", "Pretty-print JSON output (default: compact)");
-function getClient() {
+).version("0.4.1").option("-k, --api-key <key>", "CreatorCrawl API key (or set CREATORCRAWL_API_KEY env)").option("--pretty", "Pretty-print JSON output (default: compact)");
+async function getClient() {
   const opts = program2.opts();
-  const apiKey = opts.apiKey ?? process.env.CREATORCRAWL_API_KEY ?? readStoredApiKey();
-  if (!apiKey) {
-    console.error("Error: API key required. Pass --api-key or set CREATORCRAWL_API_KEY.");
-    console.error("Get a free key (250 credits) at https://creatorcrawl.com");
+  const explicitApiKey = opts.apiKey;
+  const credential = explicitApiKey ? { apiKey: explicitApiKey, source: "environment" } : await resolveCredential();
+  if (!credential) {
+    console.error("Error: authentication required. Run creatorcrawl auth login.");
     process.exit(1);
   }
-  return new CreatorCrawl({ apiKey });
+  return new CreatorCrawl(
+    credential.accessToken ? { accessToken: credential.accessToken } : { apiKey: credential.apiKey }
+  );
 }
 function output(data) {
   const opts = program2.opts();
@@ -3658,10 +3820,9 @@ async function run(fn) {
     const result = await fn();
     output(result);
   } catch (err) {
-    if (err instanceof CreatorCrawlError) {
-      console.error(`Error ${err.status}: ${err.message}`);
-    } else if (err instanceof Error) {
-      console.error(`Error: ${err.message}`);
+    if (err instanceof Error) {
+      const status = "status" in err && typeof err.status === "number" ? ` ${err.status}` : "";
+      console.error(`Error${status}: ${err.message}`);
     } else {
       console.error("Unknown error:", err);
     }
