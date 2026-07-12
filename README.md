@@ -1,49 +1,35 @@
 # CreatorCrawl Skill
 
-Agent Skill that teaches Claude, Cursor, Codex, Gemini, Windsurf, Copilot, and 40+ other AI coding agents how to research, audit, and extract data from TikTok, Instagram, YouTube, LinkedIn, Twitter (X), and Reddit using the **CreatorCrawl** social media data API.
+Agent-agnostic skill for researching, auditing, and extracting current data from TikTok, Instagram, YouTube, LinkedIn, Twitter/X, and Reddit using CreatorCrawl.
 
 Once installed, your agent will autonomously invoke this skill whenever you ask about creators, viral content, hashtag trends, competitor monitoring, influencer prospecting, or anything that needs **real, current social-media data**.
 
 ## Install
 
-### Universal — works for any agent (recommended)
+Use the hosted one-shot installer:
 
 ```bash
-npx --yes skillkit@latest install creatorcrawl/creatorcrawl-skill --all --global --yes
+curl -fsSL https://creatorcrawl.com/install.sh | sh
 ```
 
-This auto-detects supported agents and installs the complete skill folder, including its bundled CreatorCrawl CLI.
+It installs the CLI, detects supported agents, installs or updates this standalone skill, provides a runtime when necessary, and securely prompts for an API key in interactive terminals.
 
-Alternative universal installer:
+For headless agents and CI, inject an existing API key:
 
 ```bash
-npx agent-skills-cli add creatorcrawl/creatorcrawl-skill
+curl -fsSL https://creatorcrawl.com/install.sh |
+  CREATORCRAWL_API_KEY="$CREATORCRAWL_API_KEY" sh
 ```
-
-### Per-agent — manual install
-
-| Agent | Command |
-|---|---|
-| Claude Code | `git clone https://github.com/creatorcrawl/creatorcrawl-skill ~/.claude/skills/creatorcrawl` |
-| Cursor | `git clone https://github.com/creatorcrawl/creatorcrawl-skill ~/.cursor/skills/creatorcrawl` |
-| Codex / Gemini CLI / Kiro / Antigravity | `git clone https://github.com/creatorcrawl/creatorcrawl-skill ~/.agents/skills/creatorcrawl` |
-| Windsurf | `git clone https://github.com/creatorcrawl/creatorcrawl-skill ~/.codeium/windsurf/skills/creatorcrawl` |
-| OpenClaw | `clawhub install creatorcrawl` |
-| Aider | `git clone https://github.com/creatorcrawl/creatorcrawl-skill ~/.aider/skills/creatorcrawl` |
-
-Restart your agent (or start a new session). The skill will activate automatically when your prompt matches its trigger description.
 
 ## After install
 
-The CLI is bundled at `scripts/creatorcrawl`, so no second package installation is required. Node.js 18 or newer must be available.
-
-Set the API key in the agent's environment:
+Check authentication:
 
 ```bash
-export CREATORCRAWL_API_KEY=cc_...
+creatorcrawl auth status
 ```
 
-Get an API key at [creatorcrawl.com](https://creatorcrawl.com). **250 credits free on signup, no card required.**
+Use `creatorcrawl auth login` to replace a saved credential. Environment credentials take precedence over saved credentials. Get an API key at [creatorcrawl.com](https://creatorcrawl.com). New accounts include free credits and require no card.
 
 ## What the skill teaches the agent
 
