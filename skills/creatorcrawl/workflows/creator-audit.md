@@ -23,11 +23,11 @@ Ask the user for:
 
 If the user gave one handle, try it on all six platforms. Handles often (but not always) match. Use search tools as fallback:
 
-- `tiktok_search_users` — find by name on TikTok
-- `instagram_basic_profile` — quick profile check
-- `youtube_search` — find channel by name
-- `twitter_profile` — by handle
-- `linkedin_profile` — by full LinkedIn URL only
+- `tiktok_search_users` - find by name on TikTok
+- `instagram_basic_profile` - quick profile check
+- `youtube_search` - find channel by name
+- `twitter_profile` - by handle
+- `linkedin_profile` - by full LinkedIn URL only
 
 ### Step 2: Pull profile data per platform
 
@@ -41,9 +41,9 @@ linkedin_profile({ url })
 
 Each returns `{ data: Creator, meta }`. Read from `structuredContent.data`:
 
-- `data.handle` — canonical handle
-- `data.name` — display name
-- `data.bio` — bio / about text
+- `data.handle` - canonical handle
+- `data.name` - display name
+- `data.bio` - bio / about text
 - `data.follower_count`, `data.following_count`, `data.post_count`
 - `data.verified` (boolean) + optional `data.verified_tier` ('standard' | 'blue' | 'gov' | 'business' | 'creator')
 - `data.avatar_url`
@@ -65,18 +65,18 @@ List endpoints return `{ data: Post[], page: { cursor, has_more }, meta }`. Each
 
 For the recent content from step 3, average across the `Post[]` returned in `structuredContent.data`:
 
-- Likes per post — `post.like_count`
-- Comments per post — `post.comment_count`
-- Engagement rate — `(post.like_count + post.comment_count) / creator.follower_count`
-- Posting frequency — derive from `post.created_at` deltas
-- Content type breakdown — group by `post.type` (`video` / `image` / `carousel` / `text` / `short` / `reel` / `tweet`)
+- Likes per post - `post.like_count`
+- Comments per post - `post.comment_count`
+- Engagement rate - `(post.like_count + post.comment_count) / creator.follower_count`
+- Posting frequency - derive from `post.created_at` deltas
+- Content type breakdown - group by `post.type` (`video` / `image` / `carousel` / `text` / `short` / `reel` / `tweet`)
 
 ### Step 5: Output structured report
 
 Present back to the user in this format:
 
 ```
-# {Creator Name} — Audit
+# {Creator Name} - Audit
 
 ## Reach
 | Platform | Followers | Posts | Avg engagement | Posting freq |

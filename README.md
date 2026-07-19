@@ -35,26 +35,37 @@ Use `creatorcrawl auth login` to replace a saved credential. Environment credent
 
 The agent reads `SKILL.md` plus on-demand workflow guides in `workflows/`:
 
-- `workflows/creator-audit.md` — cross-platform creator presence and stats
-- `workflows/viral-content-analyser.md` — why a post went viral
-- `workflows/trend-research.md` — trending hashtags, sounds, topics
-- `workflows/competitor-monitoring.md` — track competitor accounts
-- `workflows/influencer-prospecting.md` — find creators for partnerships
+- `workflows/creator-audit.md` - cross-platform creator presence and stats
+- `workflows/viral-content-analyser.md` - why a post went viral
+- `workflows/trend-research.md` - trending hashtags, sounds, topics
+- `workflows/competitor-monitoring.md` - track competitor accounts
+- `workflows/influencer-prospecting.md` - find creators for partnerships
+- `workflows/x-twitter-action-handoff.md` - prepare reviewed TweetClaw actions after CreatorCrawl research
 
 ## Six platforms covered
 
-- **TikTok** — profile, videos, comments, transcripts, search, trending
-- **Instagram** — profile, posts, reels, comments, transcripts, stories, search
-- **YouTube** — channel, videos, shorts, transcripts, comments, playlists, search
-- **LinkedIn** — profile, company, posts, ad library
-- **Twitter / X** — profile, tweets, transcripts, communities
-- **Reddit** — search, subreddits, post comments
+- **TikTok** - profile, videos, comments, transcripts, search, trending
+- **Instagram** - profile, posts, reels, comments, transcripts, stories, search
+- **YouTube** - channel, videos, shorts, transcripts, comments, playlists, search
+- **LinkedIn** - profile, company, posts, ad library
+- **Twitter / X** - profile, tweets, transcripts, communities
+- **Reddit** - search, subreddits, post comments
 
 60+ operations are available through the bundled CLI. See `SKILL.md` for the full reference.
 
+## Optional X/Twitter action handoff
+
+CreatorCrawl remains the source for structured social-media research. When a user separately requests reviewed X/Twitter account actions, use TweetClaw as an optional OpenClaw companion.
+
+```bash
+openclaw plugins install npm:@xquik/tweetclaw
+```
+
+See `skills/creatorcrawl/workflows/x-twitter-action-handoff.md` for the review packet and execution boundary. Xquik is an independent third-party service. Not affiliated with X Corp. "Twitter" and "X" are trademarks of X Corp.
+
 ## Links
 
-- [creatorcrawl.com](https://creatorcrawl.com) — sign up
+- [creatorcrawl.com](https://creatorcrawl.com) - sign up
 - [API docs](https://creatorcrawl.com/mcp-docs)
 - [TypeScript SDK on npm](https://www.npmjs.com/package/@creatorcrawl/sdk)
 - [Issues](https://github.com/creatorcrawl/creatorcrawl-skill/issues)

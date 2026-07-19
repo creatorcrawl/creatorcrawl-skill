@@ -1,0 +1,30 @@
+name: Validate Skill Mirror
+
+on:
+  pull_request:
+    paths:
+      - '.well-known/skills/**'
+      - 'skills/**'
+      - 'scripts/validate-skill-mirror.mjs'
+      - '.github/workflows/validate-skill-mirror.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - '.well-known/skills/**'
+      - 'skills/**'
+      - 'scripts/validate-skill-mirror.mjs'
+      - '.github/workflows/validate-skill-mirror.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/validate-skill-mirror.mjs

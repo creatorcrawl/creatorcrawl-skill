@@ -28,7 +28,13 @@ twitter_tweet({ url })              # Tweet
 linkedin_post({ url })              # LinkedIn post
 ```
 
-Extract: title/caption, posted time, view count, like count, comment count, share count.
+Returns `{ data: Post, meta }`. Read from `structuredContent.data`:
+
+- `data.text` - caption / title / tweet body
+- `data.created_at` - ISO 8601 UTC posted time
+- `data.view_count`, `data.like_count`, `data.comment_count`, `data.share_count`, `data.save_count`
+- `data.duration_seconds`, `data.hashtags`, `data.music`, `data.author` (MiniCreator)
+- `data.type` - `video` / `short` / `reel` / `tweet` / `image` / `carousel`
 
 ### Step 2: Fetch the transcript (if video)
 
@@ -39,7 +45,7 @@ youtube_transcript({ url })
 twitter_transcript({ url })         # for video tweets
 ```
 
-The transcript is gold — it's where you find the **hook** (first 3 seconds) and **call to action**.
+Returns `{ data: Transcript, meta }` where `Transcript` is `{ language, text, segments?: [{ start_seconds, end_seconds, text }] }`. The transcript is gold - `data.text` for the full body, `data.segments` for time-aligned chunks. The first segment is where the **hook** lives.
 
 ### Step 3: Fetch comments for sentiment + amplifiers
 
@@ -50,10 +56,13 @@ youtube_comments({ url, limit: 100 })
 reddit_post_comments({ url, limit: 100 })
 ```
 
-Skim top comments — they reveal:
+Returns `{ data: Comment[], page, meta }`. Each `Comment` has `text`, `like_count`, `reply_count`, `created_at`, `author` (MiniCreator), `is_pinned`, `is_author_reply`. Sort by `like_count` desc to find what landed.
+
+Skim top comments - they reveal:
 - What viewers found memorable (most-liked comments echo the moment that landed)
 - Repeated questions (signal for follow-up content)
 - Negative reactions (failure modes to avoid)
+- Creator engagement - filter `is_author_reply: true` to see what the creator responded to
 
 ### Step 4: Compare to creator's baseline
 
@@ -63,7 +72,7 @@ Fetch the creator's recent posts:
 tiktok_profile_videos({ handle, limit: 20 })
 ```
 
-Compute their median view/like count. If the viral post is 5-10x baseline, it's actually viral. If 1-2x, it's just slightly above-average.
+Compute median `view_count` / `like_count` across `structuredContent.data` (Post[]). If the viral post's `view_count` is 5-10x baseline, it's actually viral. If 1-2x, it's just slightly above-average.
 
 ### Step 5: Diagnose what worked
 
@@ -71,12 +80,12 @@ Structure analysis around these levers:
 
 | Lever | Signal in data |
 |---|---|
-| Hook | First sentence of transcript — does it pattern-interrupt? |
-| Timing | Posted day/hour vs creator's usual schedule |
-| Topic | Trend-piggyback? Check if hashtags appear in `tiktok_popular_hashtags` |
-| Format | Length, pacing, music (if TikTok), thumbnail style |
-| Emotional pull | Top-liked comments — what emotion are they expressing? |
-| Algorithm boost | Engagement rate in first hour (if data shows it) |
+| Hook | First `segments[0].text` (or first sentence of `data.text` if no segments) - does it pattern-interrupt? |
+| Timing | `post.created_at` day/hour vs creator's usual schedule |
+| Topic | Trend-piggyback? Check if `post.hashtags` overlap with `tiktok_popular_hashtags` results |
+| Format | `post.duration_seconds`, pacing, `post.music` (if TikTok), `post.media[0].thumbnail_url` |
+| Emotional pull | Top-`like_count` comments - what emotion are they expressing? |
+| Algorithm boost | Engagement rate `(like_count + comment_count) / author.follower_count` |
 
 ### Step 6: Output the analysis
 
@@ -84,16 +93,16 @@ Structure analysis around these levers:
 # Why "{post title}" went viral
 
 ## The numbers
-- Views: 4.2M (vs creator average of 280K — 15x baseline)
+- Views: 4.2M (vs creator average of 280K - 15x baseline)
 - Likes: 510K
 - Comments: 8.2K
 - Posted: Tuesday 7pm PT
 
 ## What worked
-1. **Hook**: "Three words my therapist will never let me say" — pattern interrupt, list curiosity gap
+1. **Hook**: "Three words my therapist will never let me say" - pattern interrupt, list curiosity gap
 2. **Trend timing**: rode #therapytok at peak (240M views in last 7 days)
 3. **Format**: 22-second talking head, no music, direct eye contact
-4. **Comment community**: Top comment 'I'm crying' got 8K likes — emotional resonance compounded reach
+4. **Comment community**: Top comment 'I'm crying' got 8K likes - emotional resonance compounded reach
 
 ## What to copy
 - List-of-three hook with curiosity gap
@@ -109,4 +118,4 @@ Structure analysis around these levers:
 
 - **Transcripts fail** for videos without captions. Use the caption text instead, or watch via description.
 - **View counts** on Instagram private accounts return errors.
-- **Don't over-attribute** — sometimes "viral" is just a creator's first post in a topic that the algorithm decided to seed. Note when the signal is weak.
+- **Don't over-attribute** - sometimes "viral" is just a creator's first post in a topic that the algorithm decided to seed. Note when the signal is weak.
