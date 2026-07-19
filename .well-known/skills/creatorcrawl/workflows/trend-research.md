@@ -36,13 +36,13 @@ tiktok_search_keyword({ query: 'fitness motivation' })
 
 ### Instagram trends
 
-Instagram doesn't expose a public "trending" endpoint — work around it:
+Instagram doesn't expose a public "trending" endpoint - work around it:
 
 ```
 instagram_search_reels({ query: 'fitness' })  # find what's surfacing
 ```
 
-Then sample 10 reels, check engagement rates, find common hashtags.
+Then sample 10 reels - for each `Post` in `structuredContent.data`, compute `(like_count + comment_count) / author.follower_count` and tally common `hashtags[]` entries.
 
 ### YouTube trends
 
@@ -68,7 +68,7 @@ Look at top tweets, find recurring themes.
 reddit_subreddit_posts({ subreddit: 'fitness', sort: 'top', timeframe: 'week' })
 ```
 
-Top posts of the week = what's resonating right now.
+Top posts of the week = what's resonating right now. Returns `{ data: Post[], page, meta }`; sort/inspect by `post.like_count` and `post.comment_count`. Reddit "score" and "upvotes" are normalized into `like_count`.
 
 ## Synthesise into a trend report
 
@@ -92,7 +92,7 @@ Output structure:
 
 ## Content patterns
 - 30-second POV transformation reels dominate
-- #cozygym is a counter-trend to high-intensity content — opportunity
+- #cozygym is a counter-trend to high-intensity content - opportunity
 - Top sound trends last 7-14 days then fade
 
 ## Suggested content ideas
@@ -105,6 +105,6 @@ Output structure:
 
 ## Common pitfalls
 
-- **Country filtering matters** — "trending" in US is different from UK is different from JP. Always confirm the geography.
-- **Trends fade fast** — TikTok sounds last 7-14 days, hashtags 14-30. Mark the date in the output.
-- **Distinguish signal from noise** — if a hashtag has 1B views over 5 years, that's not a "trend", that's saturated. Look at recent (7d) growth, not lifetime totals.
+- **Country filtering matters** - "trending" in US is different from UK is different from JP. Always confirm the geography.
+- **Trends fade fast** - TikTok sounds last 7-14 days, hashtags 14-30. Mark the date in the output.
+- **Distinguish signal from noise** - if a hashtag has 1B views over 5 years, that's not a "trend", that's saturated. Look at recent (7d) growth, not lifetime totals.

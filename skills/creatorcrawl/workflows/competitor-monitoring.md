@@ -63,11 +63,11 @@ Returns `{ data: Post[], page: { cursor, has_more }, meta }`. Paginate via `page
 
 For each platform, compute from the `Post[]`:
 
-- **Posting frequency** — bucket `post.created_at` by week
-- **Content mix** — group by `post.type`, tally `post.hashtags`
-- **Engagement winners** — top 3 by `(like_count + comment_count) / follower_count`, not absolute counts
-- **Engagement floor** — bottom 3 by same metric
-- **CTAs** — scan `post.text` for links / mentions; check `post.is_ad` and `post.is_sponsored` flags
+- **Posting frequency** - bucket `post.created_at` by week
+- **Content mix** - group by `post.type`, tally `post.hashtags`
+- **Engagement winners** - top 3 by `(like_count + comment_count) / follower_count`, not absolute counts
+- **Engagement floor** - bottom 3 by same metric
+- **CTAs** - scan `post.text` for links / mentions; check `post.is_ad` and `post.is_sponsored` flags
 
 ### Step 5: Detect changes vs baseline
 
@@ -96,8 +96,8 @@ If user has a previous snapshot, compare:
 - 15% customer stories
 
 ## Top-performing content (30d)
-1. "X feature reveal" — TikTok, 2.4M views, 4.5x baseline
-2. "Customer story: Y" — LinkedIn, 12K reactions
+1. "X feature reveal" - TikTok, 2.4M views, 4.5x baseline
+2. "Customer story: Y" - LinkedIn, 12K reactions
 3. ...
 
 ## What's new vs last snapshot ({prev date})
@@ -119,10 +119,10 @@ Compare ad count + creative themes month-over-month.
 
 ## Credit cost
 
-15-30 credits per competitor per platform (snapshot + recent posts). Multiple competitors / platforms add up — warn user of cost.
+15-30 credits per competitor per platform (snapshot + recent posts). Multiple competitors / platforms add up - warn user of cost.
 
 ## Common pitfalls
 
-- **Don't confuse brand with sub-brand accounts** — many companies run regional or product-specific handles separately. Confirm with user before scraping the wrong one.
-- **LinkedIn ad library shows only currently-active ads** — historic ads are not retrievable.
+- **Don't confuse brand with sub-brand accounts** - many companies run regional or product-specific handles separately. Confirm with user before scraping the wrong one.
+- **LinkedIn ad library shows only currently-active ads** - historic ads are not retrievable.
 - **Engagement-rate matters more than absolute numbers** for small brands. A 50-follower account with 25 likes is more engaging than a 5M-follower account with 1K likes.

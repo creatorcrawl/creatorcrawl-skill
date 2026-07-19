@@ -15,7 +15,7 @@ Goal: find creators who fit a brand brief and produce a vetted shortlist.
 2. Platform(s) to focus on
 3. Audience-size range (nano 1K-10K / micro 10K-100K / mid 100K-1M / mega 1M+)
 4. Geography (optional)
-5. Brief budget context (optional — informs realistic targeting)
+5. Brief budget context (optional - informs realistic targeting)
 
 ## Step-by-step
 
@@ -70,15 +70,15 @@ For each `Post` in `structuredContent.data`, compute `(post.like_count + post.co
 - Mid (100K-1M): 1-3%
 - Mega (1M+): 0.5-1.5%
 
-Drop creators well below these benchmarks — they may have inflated follower counts.
+Drop creators well below these benchmarks - they may have inflated follower counts.
 
 ### Step 4: Vet for fit
 
 For each remaining creator:
-- Check `data.bio` for brand alignment (note: bio is always `data.bio` now — never `signature` / `biography` / `description` / `about`)
-- Scan top 5 recent `post.text` (captions / titles / tweet body) — does the content match the brief?
+- Check `data.bio` for brand alignment (note: bio is always `data.bio` now - never `signature` / `biography` / `description` / `about`)
+- Scan top 5 recent `post.text` (captions / titles / tweet body) - does the content match the brief?
 - Check for red flags (controversy, off-brand topics, `data.created_at` shows new account, inactivity inferred from `post.created_at` gaps)
-- Check geography — `data.region` / `data.language` / `data.location` on Creator
+- Check geography - `data.region` / `data.language` / `data.location` on Creator
 
 ### Step 5: Score and rank
 
@@ -98,10 +98,10 @@ Sort by fit score, then engagement rate.
 Pick top 10-20 and write a short summary per creator:
 
 ```
-## Top 10 creators — fitness motivation, US, 50K-500K range
+## Top 10 creators - fitness motivation, US, 50K-500K range
 
 ### @creator1 (TikTok, 240K, ER 4.8%)
-Posts 4x/week, mostly 30-second talking-head motivation content. Audience skews male 18-34. Top recent post: "5 habits that changed my life" (2.4M views). Bio links to a Linktree with paid coaching. Strong commercial intent — open to brand deals. **Fit: 9/10.**
+Posts 4x/week, mostly 30-second talking-head motivation content. Audience skews male 18-34. Top recent post: "5 habits that changed my life" (2.4M views). Bio links to a Linktree with paid coaching. Strong commercial intent - open to brand deals. **Fit: 9/10.**
 
 [link to TikTok profile]
 [link to top post]
@@ -117,8 +117,8 @@ Posts 4x/week, mostly 30-second talking-head motivation content. Audience skews 
 
 ## Common pitfalls
 
-- **Don't trust follower count alone** — bought followers are common. Engagement rate is the truth.
-- **Hashtag search can mislead** — high-volume hashtags surface generic content. Combine with keyword search.
-- **Skip creators who never reply to comments** — they won't be responsive partners either. Check `tiktok_comments` on their top post and filter for `is_author_reply: true`.
-- **Geography is hard** — check bio + post-language. Not all "US-based" creators actually live there.
-- **Avoid micro-influencers with all-promo feeds** — they've already saturated. Look for creators with 70% organic, 30% sponsored.
+- **Don't trust follower count alone** - bought followers are common. Engagement rate is the truth.
+- **Hashtag search can mislead** - high-volume hashtags surface generic content. Combine with keyword search.
+- **Skip creators who never reply to comments** - they won't be responsive partners either. Check `tiktok_comments` on their top post and filter for `is_author_reply: true`.
+- **Geography is hard** - check bio + post-language. Not all "US-based" creators actually live there.
+- **Avoid micro-influencers with all-promo feeds** - they've already saturated. Look for creators with 70% organic, 30% sponsored.

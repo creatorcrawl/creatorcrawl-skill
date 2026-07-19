@@ -114,6 +114,7 @@ Read the matching guide when the task needs multiple calls:
 - `workflows/trend-research.md`
 - `workflows/competitor-monitoring.md`
 - `workflows/influencer-prospecting.md`
+- `workflows/x-twitter-action-handoff.md`
 
 Treat operation-style examples in workflow guides as conceptual call sequences. Execute their platform and action through the bundled CLI. For example:
 
@@ -125,6 +126,8 @@ linkedin_company_posts({ url })     -> creatorcrawl linkedin company-posts <url>
 twitter_user_tweets({ handle })     -> creatorcrawl twitter tweets <handle>
 reddit_subreddit_posts({ subreddit }) -> creatorcrawl reddit subreddit-posts <subreddit>
 ```
+
+Use `workflows/x-twitter-action-handoff.md` only when the user separately requests reviewed X/Twitter account actions after CreatorCrawl research. CreatorCrawl remains the data source and TweetClaw remains a distinct optional OpenClaw companion. Xquik is an independent third-party service. Not affiliated with X Corp. "Twitter" and "X" are trademarks of X Corp.
 
 ## Execution
 
