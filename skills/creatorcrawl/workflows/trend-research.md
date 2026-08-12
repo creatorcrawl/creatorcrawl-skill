@@ -54,13 +54,20 @@ youtube_trending_shorts({ country: 'US' })       # trending shorts
 
 ### Twitter / X trends
 
-No native trends endpoint in our API. Use search:
+No native trends endpoint is available. Build a bounded, transparent sample from
+several relevant accounts instead of treating one timeline as platform-wide
+evidence:
 
 ```
-twitter_user_tweets({ handle: 'someone-in-niche', limit: 20 })
+twitter_user_tweets({ handle: 'account-one', limit: 20 })
+twitter_user_tweets({ handle: 'account-two', limit: 20 })
+twitter_user_tweets({ handle: 'account-three', limit: 20 })
 ```
 
-Look at top tweets, find recurring themes.
+State how the accounts were selected. Deduplicate reposts, retain each post URL
+and timestamp, and report the retrieval time. Count recurring themes across
+independent accounts. Describe the result as a directional account sample, not
+an X-wide trend.
 
 ### Reddit trends
 
@@ -108,3 +115,5 @@ Output structure:
 - **Country filtering matters** — "trending" in US is different from UK is different from JP. Always confirm the geography.
 - **Trends fade fast** — TikTok sounds last 7-14 days, hashtags 14-30. Mark the date in the output.
 - **Distinguish signal from noise** — if a hashtag has 1B views over 5 years, that's not a "trend", that's saturated. Look at recent (7d) growth, not lifetime totals.
+- **Keep samples auditable** — report the query or account set, sample size,
+  retrieval time, and missing or private results.
