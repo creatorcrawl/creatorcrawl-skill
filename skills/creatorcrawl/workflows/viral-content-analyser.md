@@ -1,121 +1,13 @@
-# Workflow: Viral content analyser
+# Viral content analysis
 
-Goal: explain why a specific piece of content went viral and extract reusable patterns.
+Explain a post’s performance using returned post data, transcript, comments, and a creator baseline.
 
-## When to use this workflow
+Use the relevant `../references/<platform>.md` for exact paths and parameters. Call the REST API directly as described in `../SKILL.md`; read returned values from `data`.
 
-- User shares a link to a viral video/post and asks "why did this work?"
-- User asks for analysis of trending content in a niche
-- User wants to understand hook, structure, or messaging of a viral piece
-- User asks "what made [creator]'s recent post go viral?"
+1. Fetch the post using the relevant `/tiktok/video`, `/instagram/post`, `/youtube/video`, `/twitter/tweet`, or `/linkedin/post` endpoint with its documented parameters.
+2. For video, fetch a transcript when available. Example: `/youtube/video/transcript` with `url`. If it is unavailable, work from the caption and state the limitation.
+3. Fetch one page of comments when the platform supports them, then inspect recurring questions and the most liked comments.
+4. Fetch recent creator posts for a baseline. Calculate the median of available view counts and the post’s multiple of that median; do not call it viral just because its absolute count is large.
+5. Report the numbers, opening hook, themes, audience reactions, and reusable ideas. Describe possible explanations as interpretations; public metrics cannot prove algorithmic causation.
 
-## Inputs you need
-
-1. The URL or platform handle + post ID of the content
-2. Optional: comparison context (e.g. "vs their average post")
-
-## Step-by-step
-
-### Step 1: Fetch the post itself
-
-Match platform to tool:
-
-```
-tiktok_video_info({ url })          # TikTok video
-instagram_post_info({ url })        # Instagram post
-youtube_video({ url })              # YouTube video
-twitter_tweet({ url })              # Tweet
-linkedin_post({ url })              # LinkedIn post
-```
-
-Returns `{ data: Post, meta }`. Read from `structuredContent.data`:
-
-- `data.text` — caption / title / tweet body
-- `data.created_at` — ISO 8601 UTC posted time
-- `data.view_count`, `data.like_count`, `data.comment_count`, `data.share_count`, `data.save_count`
-- `data.duration_seconds`, `data.hashtags`, `data.music`, `data.author` (MiniCreator)
-- `data.type` — `video` / `short` / `reel` / `tweet` / `image` / `carousel`
-
-### Step 2: Fetch the transcript (if video)
-
-```
-tiktok_transcript({ url })
-instagram_transcript({ url })       # for reels
-youtube_transcript({ url })
-twitter_transcript({ url })         # for video tweets
-```
-
-Returns `{ data: Transcript, meta }` where `Transcript` is `{ language, text, segments?: [{ start_seconds, end_seconds, text }] }`. The transcript is gold — `data.text` for the full body, `data.segments` for time-aligned chunks. The first segment is where the **hook** lives.
-
-### Step 3: Fetch comments for sentiment + amplifiers
-
-```
-tiktok_comments({ url, limit: 100 })
-instagram_comments({ url, limit: 100 })
-youtube_comments({ url, limit: 100 })
-reddit_post_comments({ url, limit: 100 })
-```
-
-Returns `{ data: Comment[], page, meta }`. Each `Comment` has `text`, `like_count`, `reply_count`, `created_at`, `author` (MiniCreator), `is_pinned`, `is_author_reply`. Sort by `like_count` desc to find what landed.
-
-Skim top comments — they reveal:
-- What viewers found memorable (most-liked comments echo the moment that landed)
-- Repeated questions (signal for follow-up content)
-- Negative reactions (failure modes to avoid)
-- Creator engagement — filter `is_author_reply: true` to see what the creator responded to
-
-### Step 4: Compare to creator's baseline
-
-Fetch the creator's recent posts:
-
-```
-tiktok_profile_videos({ handle, limit: 20 })
-```
-
-Compute median `view_count` / `like_count` across `structuredContent.data` (Post[]). If the viral post's `view_count` is 5-10x baseline, it's actually viral. If 1-2x, it's just slightly above-average.
-
-### Step 5: Diagnose what worked
-
-Structure analysis around these levers:
-
-| Lever | Signal in data |
-|---|---|
-| Hook | First `segments[0].text` (or first sentence of `data.text` if no segments) — does it pattern-interrupt? |
-| Timing | `post.created_at` day/hour vs creator's usual schedule |
-| Topic | Trend-piggyback? Check if `post.hashtags` overlap with `tiktok_popular_hashtags` results |
-| Format | `post.duration_seconds`, pacing, `post.music` (if TikTok), `post.media[0].thumbnail_url` |
-| Emotional pull | Top-`like_count` comments — what emotion are they expressing? |
-| Algorithm boost | Engagement rate `(like_count + comment_count) / author.follower_count` |
-
-### Step 6: Output the analysis
-
-```
-# Why "{post title}" went viral
-
-## The numbers
-- Views: 4.2M (vs creator average of 280K — 15x baseline)
-- Likes: 510K
-- Comments: 8.2K
-- Posted: Tuesday 7pm PT
-
-## What worked
-1. **Hook**: "Three words my therapist will never let me say" — pattern interrupt, list curiosity gap
-2. **Trend timing**: rode #therapytok at peak (240M views in last 7 days)
-3. **Format**: 22-second talking head, no music, direct eye contact
-4. **Comment community**: Top comment 'I'm crying' got 8K likes — emotional resonance compounded reach
-
-## What to copy
-- List-of-three hook with curiosity gap
-- 20-30 second length, direct delivery
-- Tap a #therapytok-adjacent trend
-```
-
-## Credit cost
-
-5-10 credits per analysis (1 video info + 1 transcript + 1 comments fetch + optional 1-2 baseline calls).
-
-## Common pitfalls
-
-- **Transcripts fail** for videos without captions. Use the caption text instead, or watch via description.
-- **View counts** on Instagram private accounts return errors.
-- **Don't over-attribute** — sometimes "viral" is just a creator's first post in a topic that the algorithm decided to seed. Note when the signal is weak.
+Typically three to five one-credit calls plus any requested pagination. Check endpoint costs before execution.

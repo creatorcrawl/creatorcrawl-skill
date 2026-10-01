@@ -1,79 +1,61 @@
 # CreatorCrawl Skill
 
-Agent-agnostic skill for researching, auditing, and extracting current data from TikTok, Instagram, YouTube, LinkedIn, Twitter/X, and Reddit using CreatorCrawl.
-
-Once installed, your agent will autonomously invoke this skill whenever you ask about creators, viral content, hashtag trends, competitor monitoring, influencer prospecting, or anything that needs **real, current social-media data**.
+An agent skill for fetching current public social data, researching creators, and generating API integrations across TikTok, Instagram, YouTube, LinkedIn, Twitter/X, and Reddit.
 
 ## Install
-
-Install with the same multi-agent installer used by SocialClaw:
 
 ```bash
 npx skills add creatorcrawl/creatorcrawl-skill
 ```
 
-Choose your coding agent and project or global installation. The bundle includes
-`SKILL.md`, five workflow guides, and a self-contained CreatorCrawl CLI. Node.js 18 or
-newer is required; no separate npm package installation is needed.
-
-For a non-interactive global installation:
+Choose your agent and installation scope. The default is a project installation. For a global skill available across projects:
 
 ```bash
-npx skills add creatorcrawl/creatorcrawl-skill --skill creatorcrawl --all --global --yes
+npx skills add creatorcrawl/creatorcrawl-skill --global
 ```
 
-## Authenticate
+The package contains `SKILL.md`, six platform endpoint references, an API behavior reference, and five research workflows. It does not install a CLI or configure MCP. Node.js is needed to run the installer; the installed skill uses standard HTTP requests and does not need Node.js at runtime.
 
-Ask your agent to run the bundled CLI's `auth login` command. It opens CreatorCrawl in
-your browser or displays a sign-in link. Sign in or create an account, approve access,
-and return to your agent. Credentials refresh automatically; no API key is required. For Codex, a project installation can be used directly:
+## Set up API access
+
+Sign in at [app.creatorcrawl.com](https://app.creatorcrawl.com), create an API key, and configure it in your agent's environment:
 
 ```bash
-node .agents/skills/creatorcrawl/scripts/creatorcrawl.cjs auth login
-node .agents/skills/creatorcrawl/scripts/creatorcrawl.cjs auth status
+export CREATORCRAWL_API_KEY='YOUR_API_KEY'
 ```
 
-For headless agents and CI, set `CREATORCRAWL_API_KEY` in the agent environment.
-Environment credentials take precedence over saved credentials. New accounts include
-free credits and require no card.
+Keep the key out of chat and source control. New accounts include 50 free credits with no card. The skill verifies authentication using the free `/api/validate-key` endpoint before fetching data.
 
-## Standalone CLI
+## Use it
 
-The macOS/Linux installer also installs a global `creatorcrawl` command and provides
-Node.js when necessary:
+Ask your agent:
+
+- “Audit this creator's TikTok and Instagram accounts.”
+- “Fetch this YouTube video's transcript and identify its opening hook.”
+- “Find fitness creators on TikTok and compare their recent engagement.”
+- “Write a Python script that fetches Reddit posts about this topic.”
+
+The agent reads the relevant reference and calls the API directly with `curl` or your existing HTTP client. Responses use the API's normalized JSON; no standalone CLI is required.
+
+## What's included
+
+- `references/`: endpoint paths, parameters, response descriptions, credits, pagination, and error handling.
+- `workflows/`: creator audits, viral analysis, trend research, competitor comparisons, and influencer prospecting.
+- `SKILL.md`: authentication, endpoint selection, request examples, and workflow routing.
+
+References are a snapshot. The [live OpenAPI schema](https://app.creatorcrawl.com/api/openapi.json) is authoritative for current parameters and response schemas.
+
+## Standalone CLI and MCP
+
+The [CreatorCrawl CLI](https://github.com/creatorcrawl/cli) is installed separately and provides the `creatorcrawl` terminal command. Its browser sign-in requires no API key:
 
 ```bash
 curl -fsSL https://creatorcrawl.com/install.sh | sh
 creatorcrawl auth login
+creatorcrawl tiktok profile khaby.lame
 ```
 
-## What the skill teaches the agent
-
-The agent reads `SKILL.md` plus on-demand workflow guides in `workflows/`:
-
-- `workflows/creator-audit.md` — cross-platform creator presence and stats
-- `workflows/viral-content-analyser.md` — why a post went viral
-- `workflows/trend-research.md` — trending hashtags, sounds, topics
-- `workflows/competitor-monitoring.md` — track competitor accounts
-- `workflows/influencer-prospecting.md` — find creators for partnerships
-
-## Six platforms covered
-
-- **TikTok** — profile, videos, comments, transcripts, search, trending
-- **Instagram** — profile, posts, reels, comments, transcripts, stories, search
-- **YouTube** — channel, videos, shorts, transcripts, comments, playlists, search
-- **LinkedIn** — profile, company, posts, ad library
-- **Twitter / X** — profile, tweets, transcripts, communities
-- **Reddit** — search, subreddits, post comments
-
-60+ operations are available through the bundled CLI. See `SKILL.md` for the full reference.
-
-## Links
-
-- [creatorcrawl.com](https://creatorcrawl.com) — sign up
-- [API docs](https://creatorcrawl.com/mcp-docs)
-- [TypeScript SDK on npm](https://www.npmjs.com/package/@creatorcrawl/sdk)
-- [Issues](https://github.com/creatorcrawl/creatorcrawl-skill/issues)
+For Claude mobile/Desktop and other MCP apps, add `https://app.creatorcrawl.com/api/mcp` and sign in through the browser. The skill, CLI, and MCP all use the same account, API data, and credits. [Setup guide](https://creatorcrawl.com/agents/).
 
 ## License
 
