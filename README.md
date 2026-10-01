@@ -24,8 +24,9 @@ npx skills add creatorcrawl/creatorcrawl-skill --skill creatorcrawl --all --glob
 
 ## Authenticate
 
-Ask your agent to run the bundled CLI's `auth login` command. It opens the browser for
-OAuth sign-in. For Codex, a project installation can be used directly:
+Ask your agent to run the bundled CLI's `auth login` command. It opens CreatorCrawl in
+your browser or displays a sign-in link. Sign in or create an account, approve access,
+and return to your agent. Credentials refresh automatically; no API key is required. For Codex, a project installation can be used directly:
 
 ```bash
 .agents/skills/creatorcrawl/scripts/creatorcrawl auth login

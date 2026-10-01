@@ -19,13 +19,10 @@ This skill includes a self-contained executable at `scripts/creatorcrawl`. Resol
 
 The hosted installer provides the runtime and a global launcher, but the bundled executable can also be called directly when Node.js 18 or newer is already available.
 
-Authentication is resolved in this order:
-
-1. Global `--api-key <key>` option.
-2. `CREATORCRAWL_API_KEY` environment variable.
-3. Credential saved by `creatorcrawl auth login`.
-
-Never print an API key, include one in a report, or paste one into a shell command unless the user explicitly requests non-interactive setup.
+Default to browser OAuth sign-in. Do not ask the user to generate, copy, or paste an API key.
+The CLI saves refreshable credentials and reuses them on later requests.
+If the user explicitly chooses API-key automation, the global `--api-key` option and
+`CREATORCRAWL_API_KEY` environment variable remain supported. Never expose credentials.
 
 ## Installation and authentication
 
@@ -53,14 +50,17 @@ installer remains available:
 curl -fsSL https://creatorcrawl.com/install.sh | sh
 ```
 
-Interactive terminals open browser-based OAuth Authorization Code + PKCE login and store refreshable credentials securely. Headless agents and CI can provide an existing API key non-interactively:
+The CLI opens CreatorCrawl's app in the browser and prints the authorization link if the
+browser cannot open. Run `auth login` in a process that can remain active while the user
+signs in. Give the user that generated link, keep the process running, and wait for the
+app's consent callback. Do not replace this flow with an API-key request.
+After login completes, run `auth status --json` to verify before calling data commands.
+The link must be opened on the machine running the CLI; for a remotely hosted agent,
+use the hosted MCP connector's OAuth flow instead.
 
-```bash
-curl -fsSL https://creatorcrawl.com/install.sh |
-  CREATORCRAWL_API_KEY="$CREATORCRAWL_API_KEY" sh
-```
-
-Do not invent, request, or mint credentials autonomously. The operator must provision the secret through the environment or approve the interactive OAuth login once.
+The user signs in or creates an account at `app.creatorcrawl.com`, approves access once,
+and returns to their agent. Later requests refresh automatically. No manual token setup
+or API key is required.
 
 Useful authentication commands:
 
