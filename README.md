@@ -29,8 +29,8 @@ your browser or displays a sign-in link. Sign in or create an account, approve a
 and return to your agent. Credentials refresh automatically; no API key is required. For Codex, a project installation can be used directly:
 
 ```bash
-.agents/skills/creatorcrawl/scripts/creatorcrawl auth login
-.agents/skills/creatorcrawl/scripts/creatorcrawl auth status
+node .agents/skills/creatorcrawl/scripts/creatorcrawl.cjs auth login
+node .agents/skills/creatorcrawl/scripts/creatorcrawl.cjs auth status
 ```
 
 For headless agents and CI, set `CREATORCRAWL_API_KEY` in the agent environment.

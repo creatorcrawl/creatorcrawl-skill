@@ -9,12 +9,12 @@ Use CreatorCrawl for current public social-media data across TikTok, Instagram, 
 
 ## CLI
 
-This skill includes a self-contained executable at `scripts/creatorcrawl`. Resolve the executable relative to this `SKILL.md` and invoke it directly. Do not assume a global installation and do not configure another integration.
+This skill includes a self-contained CLI at `scripts/creatorcrawl.cjs`. Resolve the executable relative to this `SKILL.md` and invoke it with Node.js. Do not assume a global installation and do not configure another integration.
 
 ```bash
-<skill-dir>/scripts/creatorcrawl --help
-<skill-dir>/scripts/creatorcrawl tiktok profile khaby.lame
-<skill-dir>/scripts/creatorcrawl youtube transcript 'https://youtu.be/...'
+node <skill-dir>/scripts/creatorcrawl.cjs --help
+node <skill-dir>/scripts/creatorcrawl.cjs tiktok profile khaby.lame
+node <skill-dir>/scripts/creatorcrawl.cjs youtube transcript 'https://youtu.be/...'
 ```
 
 The hosted installer provides the runtime and a global launcher, but the bundled executable can also be called directly when Node.js 18 or newer is already available.
@@ -33,14 +33,14 @@ npx skills add creatorcrawl/creatorcrawl-skill
 ```
 
 The installer lets the user choose supported agents and a project or global installation.
-It copies this skill, its workflow guides, and `scripts/creatorcrawl` together. Node.js 18 or
+It copies this skill, its workflow guides, and `scripts/creatorcrawl.cjs` together. Node.js 18 or
 newer is required. Skill installation does not authenticate automatically.
 
 Sign in using the bundled executable:
 
 ```bash
-<skill-dir>/scripts/creatorcrawl auth login
-<skill-dir>/scripts/creatorcrawl auth status
+node <skill-dir>/scripts/creatorcrawl.cjs auth login
+node <skill-dir>/scripts/creatorcrawl.cjs auth status
 ```
 
 For a global CLI command and automatic Node.js setup on macOS or Linux, the hosted
@@ -102,7 +102,7 @@ reddit:
   search, subreddit, subreddit-posts, subreddit-search, comments
 ```
 
-Run `<skill-dir>/scripts/creatorcrawl <platform> <command> --help` when arguments are uncertain.
+Run `node <skill-dir>/scripts/creatorcrawl.cjs <platform> <command> --help` when arguments are uncertain.
 
 ## Inputs
 
