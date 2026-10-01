@@ -1,6 +1,6 @@
 ---
 name: creatorcrawl
-description: Use this skill whenever the user wants to research, audit, analyse, monitor, scrape, or extract current structured data from TikTok, Instagram, YouTube, LinkedIn, Twitter/X, or Reddit. It bundles the CreatorCrawl CLI for creator research, influencer audits, viral-content analysis, trends, competitor monitoring, transcripts, comments, ads, profiles, posts, social listening, and cross-platform intelligence.
+description: Research creators, audit profiles, analyse posts, and extract current public social data from TikTok, Instagram, YouTube, LinkedIn, Twitter/X, and Reddit using the bundled CreatorCrawl CLI.
 ---
 
 # CreatorCrawl
@@ -29,7 +29,25 @@ Never print an API key, include one in a report, or paste one into a shell comma
 
 ## Installation and authentication
 
-For a new machine, use the single hosted installer:
+Install the complete skill bundle into your coding agent:
+
+```bash
+npx skills add creatorcrawl/creatorcrawl-skill
+```
+
+The installer lets the user choose supported agents and a project or global installation.
+It copies this skill, its workflow guides, and `scripts/creatorcrawl` together. Node.js 18 or
+newer is required. Skill installation does not authenticate automatically.
+
+Sign in using the bundled executable:
+
+```bash
+<skill-dir>/scripts/creatorcrawl auth login
+<skill-dir>/scripts/creatorcrawl auth status
+```
+
+For a global CLI command and automatic Node.js setup on macOS or Linux, the hosted
+installer remains available:
 
 ```bash
 curl -fsSL https://creatorcrawl.com/install.sh | sh

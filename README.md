@@ -6,30 +6,45 @@ Once installed, your agent will autonomously invoke this skill whenever you ask 
 
 ## Install
 
-Use the hosted one-shot installer:
+Install with the same multi-agent installer used by SocialClaw:
+
+```bash
+npx skills add creatorcrawl/creatorcrawl-skill
+```
+
+Choose your coding agent and project or global installation. The bundle includes
+`SKILL.md`, five workflow guides, and a self-contained CreatorCrawl CLI. Node.js 18 or
+newer is required; no separate npm package installation is needed.
+
+For a non-interactive global installation:
+
+```bash
+npx skills add creatorcrawl/creatorcrawl-skill --skill creatorcrawl --all --global --yes
+```
+
+## Authenticate
+
+Ask your agent to run the bundled CLI's `auth login` command. It opens the browser for
+OAuth sign-in. For Codex, a project installation can be used directly:
+
+```bash
+.agents/skills/creatorcrawl/scripts/creatorcrawl auth login
+.agents/skills/creatorcrawl/scripts/creatorcrawl auth status
+```
+
+For headless agents and CI, set `CREATORCRAWL_API_KEY` in the agent environment.
+Environment credentials take precedence over saved credentials. New accounts include
+free credits and require no card.
+
+## Standalone CLI
+
+The macOS/Linux installer also installs a global `creatorcrawl` command and provides
+Node.js when necessary:
 
 ```bash
 curl -fsSL https://creatorcrawl.com/install.sh | sh
+creatorcrawl auth login
 ```
-
-It installs the CLI, detects supported agents, installs or updates this standalone skill, provides a runtime when necessary, and opens secure browser-based OAuth login in interactive terminals.
-
-For headless agents and CI, inject an existing API key:
-
-```bash
-curl -fsSL https://creatorcrawl.com/install.sh |
-  CREATORCRAWL_API_KEY="$CREATORCRAWL_API_KEY" sh
-```
-
-## After install
-
-Check authentication:
-
-```bash
-creatorcrawl auth status
-```
-
-Use `creatorcrawl auth login` to replace a saved credential. Environment credentials take precedence over saved credentials. Get an API key at [creatorcrawl.com](https://creatorcrawl.com). New accounts include free credits and require no card.
 
 ## What the skill teaches the agent
 
