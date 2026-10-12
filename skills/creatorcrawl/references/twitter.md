@@ -1,8 +1,8 @@
 # Twitter API reference
 
-Base URL: `https://app.creatorcrawl.com/api`. Paths below are relative to this base.
+Base URL: `https://api.creatorcrawl.com`. Paths below are relative to this base.
 
-Snapshot: 2026-10-01. Check the [live OpenAPI schema](https://app.creatorcrawl.com/api/openapi.json) when parameters or response fields are uncertain.
+Snapshot: 2026-10-01. Check the [live OpenAPI schema](https://api.creatorcrawl.com/openapi.json) when parameters or response fields are uncertain.
 
 ## Get Twitter/X profile
 

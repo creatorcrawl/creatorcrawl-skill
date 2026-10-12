@@ -7,7 +7,7 @@ description: Fetch current public social data, research creators, audit profiles
 
 Call the REST API directly with `curl` or the user's existing HTTP client. This skill contains instructions, endpoint references, and research workflows. It does not install or require the CreatorCrawl CLI or an MCP server.
 
-Base URL: `https://app.creatorcrawl.com/api`.
+Base URL: `https://api.creatorcrawl.com`.
 
 ## Authentication
 
@@ -17,7 +17,7 @@ Verify authentication before the first data request; this endpoint costs no cred
 
 ```bash
 curl --fail-with-body --silent --show-error \
-  'https://app.creatorcrawl.com/api/validate-key' \
+  'https://api.creatorcrawl.com/validate-key' \
   -H "x-api-key: $CREATORCRAWL_API_KEY"
 ```
 
@@ -34,7 +34,7 @@ Load only the reference for the requested platform:
 - [Twitter/X](references/twitter.md): profiles, tweets, video search, transcripts, communities.
 - [Reddit](references/reddit.md): search, subreddits, posts, comments.
 
-The references include paths, required and optional parameters, and credit costs. They are a snapshot; the [live OpenAPI schema](https://app.creatorcrawl.com/api/openapi.json) is authoritative for current endpoint parameters and response schemas. [Interactive API docs](https://app.creatorcrawl.com/api/docs) need no authentication to read. Do not guess CLI command names or use upstream-provider URLs.
+The references include paths, required and optional parameters, and credit costs. They are a snapshot; the [live OpenAPI schema](https://api.creatorcrawl.com/openapi.json) is authoritative for current endpoint parameters and response schemas. [Interactive API docs](https://api.creatorcrawl.com/docs) need no authentication to read. Do not guess CLI command names or use upstream-provider URLs.
 
 ## Make a request
 
@@ -42,12 +42,12 @@ Use `--get` and `--data-urlencode` so URLs, search terms, and cursors are encode
 
 ```bash
 curl --fail-with-body --silent --show-error --get \
-  'https://app.creatorcrawl.com/api/tiktok/profile' \
+  'https://api.creatorcrawl.com/tiktok/profile' \
   -H "x-api-key: $CREATORCRAWL_API_KEY" \
   --data-urlencode 'handle=khaby.lame'
 
 curl --fail-with-body --silent --show-error --get \
-  'https://app.creatorcrawl.com/api/youtube/video/transcript' \
+  'https://api.creatorcrawl.com/youtube/video/transcript' \
   -H "x-api-key: $CREATORCRAWL_API_KEY" \
   --data-urlencode 'url=https://youtu.be/dQw4w9WgXcQ' \
   --data-urlencode 'language=en'

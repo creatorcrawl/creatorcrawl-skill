@@ -14,7 +14,7 @@ New accounts receive 50 free credits. Current credit packs: $29 for 5,000 credit
 
 ## Response fields
 
-Normalized `/api/<platform>/...` data endpoints use `{ data, page?, meta }`. Creator fields include `handle`, `name`, `bio`, `follower_count`, `following_count`, `post_count`, and `url` when available. Post fields include `text`, `url`, `created_at`, `like_count`, `comment_count`, `view_count`, `share_count`, and `author` when available. Transcripts contain `text`, `language`, and optional timed `segments`. Inspect the live response schema for the exact endpoint; utility routes can return different objects.
+Normalized `/<platform>/...` data endpoints use `{ data, page?, meta }`. Creator fields include `handle`, `name`, `bio`, `follower_count`, `following_count`, `post_count`, and `url` when available. Post fields include `text`, `url`, `created_at`, `like_count`, `comment_count`, `view_count`, `share_count`, and `author` when available. Transcripts contain `text`, `language`, and optional timed `segments`. Inspect the live response schema for the exact endpoint; utility routes can return different objects.
 
 `meta.fetched_at` is retrieval time, not content publication time. Missing or omitted fields indicate unavailable data. Avoid treating missing counters as zero. Example snippets and workflow formulas are not evidence of actual performance.
 

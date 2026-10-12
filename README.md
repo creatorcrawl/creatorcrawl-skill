@@ -43,7 +43,7 @@ The agent reads the relevant reference and calls the API directly with `curl` or
 - `workflows/`: creator audits, viral analysis, trend research, competitor comparisons, and influencer prospecting.
 - `SKILL.md`: authentication, endpoint selection, request examples, and workflow routing.
 
-References are a snapshot. The [live OpenAPI schema](https://app.creatorcrawl.com/api/openapi.json) is authoritative for current parameters and response schemas.
+References are a snapshot. The [live OpenAPI schema](https://api.creatorcrawl.com/openapi.json) is authoritative for current parameters and response schemas.
 
 ## Standalone CLI and MCP
 
@@ -55,7 +55,7 @@ creatorcrawl auth login
 creatorcrawl tiktok profile khaby.lame
 ```
 
-For Claude mobile/Desktop and other MCP apps, add `https://app.creatorcrawl.com/api/mcp` and sign in through the browser. The skill, CLI, and MCP all use the same account, API data, and credits. [Setup guide](https://creatorcrawl.com/agents/).
+For Claude mobile/Desktop and other MCP apps, add `https://api.creatorcrawl.com/mcp` and sign in through the browser. The skill, CLI, and MCP all use the same account, API data, and credits. [Setup guide](https://creatorcrawl.com/agents/).
 
 ## License
 

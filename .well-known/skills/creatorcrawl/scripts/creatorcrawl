@@ -3039,7 +3039,7 @@ __export(index_exports, {
 });
 module.exports = __toCommonJS(index_exports);
 
-// node_modules/.pnpm/@creatorcrawl+sdk@https+++codeload.github.com+creatorcrawl+sdk-typescript+tar.gz+e9e16e_6b3532413c34c0e17a7cd843e42c677c/node_modules/@creatorcrawl/sdk/dist/index.js
+// node_modules/.pnpm/@creatorcrawl+sdk@https+++codeload.github.com+creatorcrawl+sdk-typescript+tar.gz+d60cd6_bca71755d462915b2cabd38a0a96d6b4/node_modules/@creatorcrawl/sdk/dist/index.js
 var CreatorCrawlError = class extends Error {
   status;
   code;
@@ -3294,7 +3294,7 @@ var YouTube = class {
     return this.client.get("/youtube/shorts/trending", void 0, options);
   }
 };
-var DEFAULT_BASE_URL = "https://app.creatorcrawl.com/api";
+var DEFAULT_BASE_URL = "https://api.creatorcrawl.com";
 var DEFAULT_TIMEOUT = 3e4;
 var CreatorCrawl = class {
   tiktok;
@@ -3419,7 +3419,7 @@ var import_node_http = require("http");
 var import_node_os = require("os");
 var import_node_path = require("path");
 var import_node_child_process = require("child_process");
-var APP_URL = "https://app.creatorcrawl.com";
+var API_URL = "https://api.creatorcrawl.com";
 var KEYCHAIN_SERVICE = "creatorcrawl-cli";
 var KEYCHAIN_ACCOUNT = "oauth";
 function credentialsPath() {
@@ -3484,7 +3484,7 @@ async function removeCredentials() {
   await (0, import_promises.rm)(credentialsPath(), { force: true });
 }
 async function revokeOAuth(credentials) {
-  await fetch(`${APP_URL}/api/oauth/revoke`, {
+  await fetch(`${API_URL}/oauth/revoke`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -3504,16 +3504,29 @@ function base64Url(input) {
 }
 async function oauthRequest(path, body) {
   const isForm = body instanceof URLSearchParams;
-  const response = await fetch(`${APP_URL}/api${path}`, {
+  const response = await fetch(`${API_URL}${path}`, {
     method: "POST",
     headers: { "content-type": isForm ? "application/x-www-form-urlencoded" : "application/json" },
     body: isForm ? body : JSON.stringify(body)
   });
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(String(data.error_description ?? data.error ?? `OAuth request failed (${response.status})`));
+    throw new Error(
+      String(data.error_description ?? data.error ?? `OAuth request failed (${response.status})`)
+    );
   }
   return data;
+}
+async function oauthTokenRequest(body) {
+  const token = await oauthRequest("/oauth/token", body);
+  if (typeof token.access_token !== "string" || !token.access_token || typeof token.refresh_token !== "string" || !token.refresh_token || typeof token.expires_in !== "number" || !Number.isFinite(token.expires_in) || token.expires_in <= 0) {
+    throw new Error("OAuth returned an invalid token response.");
+  }
+  return {
+    accessToken: token.access_token,
+    refreshToken: token.refresh_token,
+    expiresAt: Date.now() + token.expires_in * 1e3
+  };
 }
 async function browserLogin() {
   const callback = (0, import_node_http.createServer)();
@@ -3535,7 +3548,7 @@ async function browserLogin() {
   const verifier = base64Url((0, import_node_crypto.randomBytes)(48));
   const challenge = base64Url((0, import_node_crypto.createHash)("sha256").update(verifier).digest());
   const state = base64Url((0, import_node_crypto.randomBytes)(24));
-  const authorizeUrl = new URL(`${APP_URL}/api/oauth/authorize`);
+  const authorizeUrl = new URL(`${API_URL}/oauth/authorize`);
   authorizeUrl.search = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -3546,10 +3559,13 @@ async function browserLogin() {
     state
   }).toString();
   const codePromise = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      callback.close();
-      reject(new Error("OAuth login timed out."));
-    }, 5 * 60 * 1e3);
+    const timeout = setTimeout(
+      () => {
+        callback.close();
+        reject(new Error("OAuth login timed out."));
+      },
+      5 * 60 * 1e3
+    );
     callback.on("request", (request, response) => {
       const url = new URL(request.url ?? "/", redirectUri);
       if (url.pathname !== "/callback") {
@@ -3577,8 +3593,7 @@ async function browserLogin() {
 ${authorizeUrl.toString()}`);
   openBrowser(authorizeUrl.toString());
   const code = await codePromise;
-  const token = await oauthRequest(
-    "/oauth/token",
+  const token = await oauthTokenRequest(
     new URLSearchParams({
       grant_type: "authorization_code",
       client_id: clientId,
@@ -3590,14 +3605,11 @@ ${authorizeUrl.toString()}`);
   return {
     type: "oauth",
     clientId,
-    accessToken: String(token.access_token),
-    refreshToken: String(token.refresh_token),
-    expiresAt: Date.now() + Number(token.expires_in) * 1e3
+    ...token
   };
 }
 async function refreshOAuth(credentials) {
-  const token = await oauthRequest(
-    "/oauth/token",
+  const token = await oauthTokenRequest(
     new URLSearchParams({
       grant_type: "refresh_token",
       client_id: credentials.clientId,
@@ -3606,16 +3618,14 @@ async function refreshOAuth(credentials) {
   );
   const refreshed = {
     ...credentials,
-    accessToken: String(token.access_token),
-    refreshToken: String(token.refresh_token),
-    expiresAt: Date.now() + Number(token.expires_in) * 1e3
+    ...token
   };
   await saveCredentials(refreshed);
   return refreshed;
 }
 async function verifyCredential(credential) {
   const headers = credential.accessToken ? { authorization: `Bearer ${credential.accessToken}` } : { "x-api-key": credential.apiKey };
-  const response = await fetch(`${APP_URL}/api/validate-key`, { headers });
+  const response = await fetch(`${API_URL}/validate-key`, { headers });
   return response.ok;
 }
 async function resolveCredential() {
@@ -3629,7 +3639,8 @@ async function resolveCredential() {
   return { accessToken: oauth.accessToken, source: "oauth" };
 }
 function validateApiKey(apiKey) {
-  if (!/^sk_live_[a-f0-9]{64}$/.test(apiKey)) throw new Error("Invalid CreatorCrawl API key format.");
+  if (!/^sk_live_[a-f0-9]{64}$/.test(apiKey))
+    throw new Error("Invalid CreatorCrawl API key format.");
 }
 function registerAuth(program3) {
   const auth = program3.command("auth").description("Manage CLI authentication");
@@ -3672,19 +3683,41 @@ function registerAuth(program3) {
   });
 }
 
+// src/options.ts
+function parsePage(value) {
+  if (!/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(Number(value))) {
+    throw new InvalidArgumentError("Page must be a positive integer.");
+  }
+  return value;
+}
+
 // src/commands/instagram.ts
 function registerInstagram(program3, getClient2) {
   const instagram = program3.command("instagram").description("Instagram endpoints");
   instagram.command("profile <handle>").description("Get an Instagram profile by handle").action((handle) => run(async () => (await getClient2()).instagram.profile({ handle })));
-  instagram.command("basic-profile <userId>").description("Get a basic Instagram profile by numeric user ID").action((userId) => run(async () => (await getClient2()).instagram.basicProfile({ userId })));
-  instagram.command("posts <handle>").description("Get an Instagram user's recent posts").action((handle) => run(async () => (await getClient2()).instagram.posts({ handle })));
-  instagram.command("reels <handle>").description("Get an Instagram user's recent reels").action((handle) => run(async () => (await getClient2()).instagram.reels({ handle })));
+  instagram.command("basic-profile <userId>").description("Get a basic Instagram profile by numeric user ID").action(
+    (userId) => run(async () => (await getClient2()).instagram.basicProfile({ userId }))
+  );
+  instagram.command("posts <handle>").description("Get an Instagram user's recent posts").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (handle, options) => run(async () => (await getClient2()).instagram.posts({ next_max_id: options.cursor, handle }))
+  );
+  instagram.command("reels <handle>").description("Get an Instagram user's recent reels").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (handle, options) => run(async () => (await getClient2()).instagram.reels({ max_id: options.cursor, handle }))
+  );
   instagram.command("post <url>").description("Get info for a single Instagram post").action((url) => run(async () => (await getClient2()).instagram.postInfo({ url })));
-  instagram.command("comments <url>").description("Get comments on an Instagram post").action((url) => run(async () => (await getClient2()).instagram.comments({ url })));
+  instagram.command("comments <url>").description("Get comments on an Instagram post").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (url, options) => run(async () => (await getClient2()).instagram.comments({ ...options, url }))
+  );
   instagram.command("transcript <url>").description("Get the transcript of an Instagram reel").action((url) => run(async () => (await getClient2()).instagram.transcript({ url })));
-  instagram.command("highlights <handle>").description("List an Instagram user's story highlights").action((handle) => run(async () => (await getClient2()).instagram.storyHighlights({ handle })));
-  instagram.command("highlight <id>").description("Get the contents of one Instagram highlight by ID").action((id) => run(async () => (await getClient2()).instagram.highlightsDetails({ id })));
-  instagram.command("search-reels <query>").description("Search Instagram reels by keyword").action((query) => run(async () => (await getClient2()).instagram.searchReels({ query })));
+  instagram.command("highlights <handle>").description("List an Instagram user's story highlights").action(
+    (handle) => run(async () => (await getClient2()).instagram.storyHighlights({ handle }))
+  );
+  instagram.command("highlight <id>").description("Get the contents of one Instagram highlight by ID").action(
+    (id) => run(async () => (await getClient2()).instagram.highlightsDetails({ id }))
+  );
+  instagram.command("search-reels <query>").description("Search Instagram reels by keyword").option("--page <page>", "Page number from page.cursor in the previous response", parsePage).action(
+    (query, options) => run(async () => (await getClient2()).instagram.searchReels({ ...options, query }))
+  );
   instagram.command("embed <handle>").description("Get embeddable Instagram profile HTML").action((handle) => run(async () => (await getClient2()).instagram.embed({ handle })));
 }
 
@@ -3693,24 +3726,38 @@ function registerLinkedIn(program3, getClient2) {
   const linkedin = program3.command("linkedin").description("LinkedIn endpoints");
   linkedin.command("profile <url>").description("Get LinkedIn person profile by URL").action((url) => run(async () => (await getClient2()).linkedin.profile({ url })));
   linkedin.command("company <url>").description("Get LinkedIn company page by URL").action((url) => run(async () => (await getClient2()).linkedin.company({ url })));
-  linkedin.command("company-posts <url>").description("Get recent posts from a LinkedIn company page").action((url) => run(async () => (await getClient2()).linkedin.companyPosts({ url })));
+  linkedin.command("company-posts <url>").description("Get recent posts from a LinkedIn company page").option("--page <page>", "Page number from page.cursor in the previous response", parsePage).action(
+    (url, options) => run(async () => (await getClient2()).linkedin.companyPosts({ ...options, url }))
+  );
   linkedin.command("post <url>").description("Get info for a single LinkedIn post").action((url) => run(async () => (await getClient2()).linkedin.post({ url })));
-  linkedin.command("ads <keyword>").description("Search the LinkedIn Ad Library by keyword (or pass a company name)").action((keyword) => run(async () => (await getClient2()).linkedin.adsSearch({ keyword })));
+  linkedin.command("ads <keyword>").description("Search the LinkedIn Ad Library by keyword (or pass a company name)").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (keyword, options) => run(
+      async () => (await getClient2()).linkedin.adsSearch({ paginationToken: options.cursor, keyword })
+    )
+  );
   linkedin.command("ad <url>").description("Get info for a single LinkedIn ad").action((url) => run(async () => (await getClient2()).linkedin.ad({ url })));
 }
 
 // src/commands/reddit.ts
 function registerReddit(program3, getClient2) {
   const reddit = program3.command("reddit").description("Reddit endpoints");
-  reddit.command("search <query>").description("Search Reddit by keyword").action((query) => run(async () => (await getClient2()).reddit.search({ query })));
+  reddit.command("search <query>").description("Search Reddit by keyword").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (query, options) => run(async () => (await getClient2()).reddit.search({ after: options.cursor, query }))
+  );
   reddit.command("subreddit <subreddit>").description("Get details for a subreddit").action(
     (subreddit) => run(async () => (await getClient2()).reddit.subredditDetails({ subreddit }))
   );
-  reddit.command("subreddit-posts <subreddit>").description("Get recent posts from a subreddit").action((subreddit) => run(async () => (await getClient2()).reddit.subredditPosts({ subreddit })));
-  reddit.command("subreddit-search <subreddit> <query>").description("Search within a subreddit").action(
-    (subreddit, query) => run(async () => (await getClient2()).reddit.subredditSearch({ subreddit, query }))
+  reddit.command("subreddit-posts <subreddit>").description("Get recent posts from a subreddit").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (subreddit, options) => run(
+      async () => (await getClient2()).reddit.subredditPosts({ after: options.cursor, subreddit })
+    )
   );
-  reddit.command("comments <url>").description("Get comments on a Reddit post").action((url) => run(async () => (await getClient2()).reddit.postComments({ url })));
+  reddit.command("subreddit-search <subreddit> <query>").description("Search within a subreddit").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (subreddit, query, options) => run(async () => (await getClient2()).reddit.subredditSearch({ ...options, subreddit, query }))
+  );
+  reddit.command("comments <url>").description("Get comments on a Reddit post").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (url, options) => run(async () => (await getClient2()).reddit.postComments({ ...options, url }))
+  );
 }
 
 // src/handles.ts
@@ -3728,44 +3775,82 @@ function normalizeTikTokHandle(input) {
     }
     return decodeURIComponent(segment.slice(1));
   }
-  return value.replace(/^@/, "");
+  const handle = value.replace(/^@/, "");
+  if (!handle) throw new Error("TikTok handle is required.");
+  return handle;
 }
 
 // src/commands/tiktok.ts
 function registerTiktok(program3, getClient2) {
   const tiktok = program3.command("tiktok").description("TikTok endpoints");
   tiktok.command("profile <handle>").description("Get a TikTok profile by handle").action(
-    (handle) => run(async () => (await getClient2()).tiktok.profile({ handle: normalizeTikTokHandle(handle) }))
+    (handle) => run(
+      async () => (await getClient2()).tiktok.profile({ handle: normalizeTikTokHandle(handle) })
+    )
   );
-  tiktok.command("videos <handle>").description("Get a TikTok user's recent videos").action(
-    (handle) => run(async () => (await getClient2()).tiktok.profileVideos({ handle: normalizeTikTokHandle(handle) }))
+  tiktok.command("videos <handle>").description("Get a TikTok user's recent videos").addOption(new Option("--sort <order>", "Sort videos").choices(["latest", "popular"])).option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (handle, options) => run(
+      async () => (await getClient2()).tiktok.profileVideos({
+        max_cursor: options.cursor,
+        sort_by: options.sort,
+        handle: normalizeTikTokHandle(handle)
+      })
+    )
   );
   tiktok.command("video <url>").description("Get info for a single TikTok video").action((url) => run(async () => (await getClient2()).tiktok.videoInfo({ url })));
   tiktok.command("transcript <url>").description("Get the transcript of a TikTok video").action((url) => run(async () => (await getClient2()).tiktok.transcript({ url })));
-  tiktok.command("comments <url>").description("Get comments on a TikTok video").action((url) => run(async () => (await getClient2()).tiktok.comments({ url })));
+  tiktok.command("comments <url>").description("Get comments on a TikTok video").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (url, options) => run(async () => (await getClient2()).tiktok.comments({ ...options, url }))
+  );
   tiktok.command("creator-transcripts <handle>").description("Bulk transcripts of a creator's recent videos").action(
-    (handle) => run(async () => (await getClient2()).tiktok.creatorTranscripts({ handle: normalizeTikTokHandle(handle) }))
+    (handle) => run(
+      async () => (await getClient2()).tiktok.creatorTranscripts({ handle: normalizeTikTokHandle(handle) })
+    )
   );
-  tiktok.command("followers <handle>").description("Get a user's followers").action(
-    (handle) => run(async () => (await getClient2()).tiktok.followers({ handle: normalizeTikTokHandle(handle) }))
+  tiktok.command("followers <handle>").description("Get a user's followers").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (handle, options) => run(
+      async () => (await getClient2()).tiktok.followers({ ...options, handle: normalizeTikTokHandle(handle) })
+    )
   );
-  tiktok.command("following <handle>").description("Get accounts a user follows").action(
-    (handle) => run(async () => (await getClient2()).tiktok.following({ handle: normalizeTikTokHandle(handle) }))
+  tiktok.command("following <handle>").description("Get accounts a user follows").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (handle, options) => run(
+      async () => (await getClient2()).tiktok.following({ ...options, handle: normalizeTikTokHandle(handle) })
+    )
   );
   tiktok.command("live <handle>").description("Get a user's live stream info").action(
     (handle) => run(async () => (await getClient2()).tiktok.live({ handle: normalizeTikTokHandle(handle) }))
   );
   tiktok.command("song <clipId>").description("Get details for a TikTok song / sound").action((clipId) => run(async () => (await getClient2()).tiktok.songDetails({ clipId })));
-  tiktok.command("song-videos <clipId>").description("Get videos that use a TikTok song / sound").action((clipId) => run(async () => (await getClient2()).tiktok.songVideos({ clipId })));
-  tiktok.command("search <query>").description("Search TikTok by keyword").action((query) => run(async () => (await getClient2()).tiktok.searchKeyword({ query })));
-  tiktok.command("users <query>").description("Search TikTok users").action((query) => run(async () => (await getClient2()).tiktok.searchUsers({ query })));
-  tiktok.command("top <query>").description("TikTok top search results (users + videos + sounds)").action((query) => run(async () => (await getClient2()).tiktok.searchTop({ query })));
-  tiktok.command("hashtag <hashtag>").description("Get videos under a TikTok hashtag").action((hashtag) => run(async () => (await getClient2()).tiktok.searchHashtag({ hashtag })));
-  tiktok.command("popular-creators").description("Popular TikTok creators (trending)").action(() => run(async () => (await getClient2()).tiktok.popularCreators()));
-  tiktok.command("popular-hashtags").description("Popular TikTok hashtags (trending)").action(() => run(async () => (await getClient2()).tiktok.popularHashtags()));
-  tiktok.command("popular-songs").description("Popular TikTok songs (trending)").action(() => run(async () => (await getClient2()).tiktok.popularSongs()));
-  tiktok.command("popular-videos").description("Popular TikTok videos (trending)").action(() => run(async () => (await getClient2()).tiktok.popularVideos()));
-  tiktok.command("trending [region]").description("Current TikTok trending feed for a region (e.g. US)").action((region) => run(async () => (await getClient2()).tiktok.trendingFeed({ region })));
+  tiktok.command("song-videos <clipId>").description("Get videos that use a TikTok song / sound").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (clipId, options) => run(async () => (await getClient2()).tiktok.songVideos({ ...options, clipId }))
+  );
+  tiktok.command("search <query>").description("Search TikTok by keyword").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (query, options) => run(async () => (await getClient2()).tiktok.searchKeyword({ ...options, query }))
+  );
+  tiktok.command("users <query>").description("Search TikTok users").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (query, options) => run(async () => (await getClient2()).tiktok.searchUsers({ ...options, query }))
+  );
+  tiktok.command("top <query>").description("TikTok top search results (users + videos + sounds)").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (query, options) => run(async () => (await getClient2()).tiktok.searchTop({ ...options, query }))
+  );
+  tiktok.command("hashtag <hashtag>").description("Get videos under a TikTok hashtag").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (hashtag, options) => run(async () => (await getClient2()).tiktok.searchHashtag({ ...options, hashtag }))
+  );
+  tiktok.command("popular-creators").description("Popular TikTok creators (trending)").option("--page <page>", "Page number from page.cursor in the previous response", parsePage).action(
+    (options) => run(async () => (await getClient2()).tiktok.popularCreators(options))
+  );
+  tiktok.command("popular-hashtags").description("Popular TikTok hashtags (trending)").option("--page <page>", "Page number from page.cursor in the previous response", parsePage).action(
+    (options) => run(async () => (await getClient2()).tiktok.popularHashtags(options))
+  );
+  tiktok.command("popular-songs").description("Popular TikTok songs (trending)").option("--page <page>", "Page number from page.cursor in the previous response", parsePage).action(
+    (options) => run(async () => (await getClient2()).tiktok.popularSongs(options))
+  );
+  tiktok.command("popular-videos").description("Popular TikTok videos (trending)").option("--page <page>", "Page number from page.cursor in the previous response", parsePage).action(
+    (options) => run(async () => (await getClient2()).tiktok.popularVideos(options))
+  );
+  tiktok.command("trending [region]").description("Current TikTok trending feed for a region (e.g. US)").action(
+    (region) => run(async () => (await getClient2()).tiktok.trendingFeed({ region }))
+  );
 }
 
 // src/commands/twitter.ts
@@ -3783,14 +3868,36 @@ function registerTwitter(program3, getClient2) {
 function registerYoutube(program3, getClient2) {
   const youtube = program3.command("youtube").description("YouTube endpoints");
   youtube.command("channel <handle>").description("Get a YouTube channel by handle (or pass an @handle or channelId)").action((handle) => run(async () => (await getClient2()).youtube.channel({ handle })));
-  youtube.command("videos <handle>").description("Get a YouTube channel's recent videos").action((handle) => run(async () => (await getClient2()).youtube.channelVideos({ handle })));
-  youtube.command("shorts <handle>").description("Get a YouTube channel's recent shorts").action((handle) => run(async () => (await getClient2()).youtube.channelShorts({ handle })));
+  youtube.command("videos <handle>").description("Get a YouTube channel's recent videos").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (handle, options) => run(
+      async () => (await getClient2()).youtube.channelVideos({ continuationToken: options.cursor, handle })
+    )
+  );
+  youtube.command("shorts <handle>").description("Get a YouTube channel's recent shorts").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (handle, options) => run(
+      async () => (await getClient2()).youtube.channelShorts({ continuationToken: options.cursor, handle })
+    )
+  );
   youtube.command("video <url>").description("Get info for a single YouTube video").action((url) => run(async () => (await getClient2()).youtube.video({ url })));
   youtube.command("transcript <url>").description("Get the transcript of a YouTube video").action((url) => run(async () => (await getClient2()).youtube.transcript({ url })));
-  youtube.command("comments <url>").description("Get comments on a YouTube video").action((url) => run(async () => (await getClient2()).youtube.comments({ url })));
-  youtube.command("search <query>").description("Search YouTube by keyword").action((query) => run(async () => (await getClient2()).youtube.search({ query })));
-  youtube.command("search-hashtag <hashtag>").description("Search YouTube by hashtag").action((hashtag) => run(async () => (await getClient2()).youtube.searchHashtag({ hashtag })));
-  youtube.command("playlist <playlist_id>").description("Get YouTube playlist contents by playlist ID").action((playlist_id) => run(async () => (await getClient2()).youtube.playlist({ playlist_id })));
+  youtube.command("comments <url>").description("Get comments on a YouTube video").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (url, options) => run(
+      async () => (await getClient2()).youtube.comments({ continuationToken: options.cursor, url })
+    )
+  );
+  youtube.command("search <query>").description("Search YouTube by keyword").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (query, options) => run(
+      async () => (await getClient2()).youtube.search({ continuationToken: options.cursor, query })
+    )
+  );
+  youtube.command("search-hashtag <hashtag>").description("Search YouTube by hashtag").option("--cursor <cursor>", "Cursor from page.cursor in the previous response").action(
+    (hashtag, options) => run(
+      async () => (await getClient2()).youtube.searchHashtag({ continuationToken: options.cursor, hashtag })
+    )
+  );
+  youtube.command("playlist <playlist_id>").description("Get YouTube playlist contents by playlist ID").action(
+    (playlist_id) => run(async () => (await getClient2()).youtube.playlist({ playlist_id }))
+  );
   youtube.command("trending-shorts").description("Currently trending YouTube shorts").action(() => run(async () => (await getClient2()).youtube.trendingShorts()));
 }
 
@@ -3798,7 +3905,7 @@ function registerYoutube(program3, getClient2) {
 var program2 = new Command();
 program2.name("creatorcrawl").description(
   "Scrape TikTok, Instagram, YouTube, LinkedIn, Twitter/X, and Reddit from your terminal."
-).version("0.4.1").option("-k, --api-key <key>", "CreatorCrawl API key (or set CREATORCRAWL_API_KEY env)").option("--pretty", "Pretty-print JSON output (default: compact)");
+).version("0.4.3").option("-k, --api-key <key>", "CreatorCrawl API key (or set CREATORCRAWL_API_KEY env)").option("--pretty", "Pretty-print JSON output (default: compact)");
 async function getClient() {
   const opts = program2.opts();
   const explicitApiKey = opts.apiKey;
@@ -3818,11 +3925,21 @@ function output(data) {
 async function run(fn) {
   try {
     const result = await fn();
+    if (!result || typeof result !== "object" || Array.isArray(result) || !("data" in result)) {
+      throw new Error("API returned an invalid response.");
+    }
     output(result);
   } catch (err) {
     if (err instanceof Error) {
       const status = "status" in err && typeof err.status === "number" ? ` ${err.status}` : "";
-      console.error(`Error${status}: ${err.message}`);
+      let message = err.message;
+      if (err instanceof CreatorCrawlError && err.response && typeof err.response === "object" && "error" in err.response) {
+        const apiError = err.response.error;
+        if (apiError && typeof apiError === "object" && "message" in apiError && typeof apiError.message === "string") {
+          message = apiError.message;
+        }
+      }
+      console.error(`Error${status}: ${message}`);
     } else {
       console.error("Unknown error:", err);
     }
