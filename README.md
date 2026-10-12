@@ -1,6 +1,6 @@
 # CreatorCrawl Skill
 
-An agent skill for fetching current public social data, researching creators, and generating API integrations across TikTok, Instagram, YouTube, LinkedIn, Twitter/X, and Reddit.
+An agent skill for fetching current public social data, researching creators, and generating API integrations across TikTok, Instagram, YouTube, LinkedIn, Twitter/X, Reddit, and Facebook.
 
 ## Install
 
@@ -14,7 +14,7 @@ Choose your agent and installation scope. The default is a project installation.
 npx skills add creatorcrawl/creatorcrawl-skill --global
 ```
 
-The package contains `SKILL.md`, six platform endpoint references, an API behavior reference, and five research workflows. It does not install a CLI or configure MCP. Node.js is needed to run the installer; the installed skill uses standard HTTP requests and does not need Node.js at runtime.
+The package contains `SKILL.md`, seven platform endpoint references, an API behavior reference, and five research workflows. It does not install a CLI or configure MCP. Node.js is needed to run the installer; the installed skill uses standard HTTP requests and does not need Node.js at runtime.
 
 ## Set up API access
 

@@ -22,11 +22,12 @@ Normalized `/<platform>/...` data endpoints use `{ data, page?, meta }`. Creator
 
 Error bodies vary: some use `{ success: false, error: "..." }`, others use `{ error: { code, message } }`. Use HTTP status plus the actual body.
 
-- 400/422: correct the documented inputs before retrying.
-- 401/403: check credential validity or whether the source content is restricted. Do not repeatedly retry unchanged authentication or a private profile.
+- 400/422: correct the documented inputs before retrying. A 422 `upstream_rejected` means the source rejected the input.
+- 401: missing or invalid API key (`{ success: false, error: "Invalid API key" }`); fix the credential and do not retry unchanged.
+- 403: the upstream source is restricted (`upstream_forbidden`); do not repeatedly retry a private profile.
 - 402: insufficient credits; stop and direct the user to billing.
 - 404: content is unavailable; report it and continue other requested subjects.
 - 429: respect `Retry-After` when present; avoid automatic pagination storms.
-- 5xx: report partial results. Retry a transient failure at most once with a short delay; do not repeatedly run the same unavailable upstream call.
+- 5xx (503 `upstream_error` for upstream failures): report partial results. Retry a transient failure at most once with a short delay; do not repeatedly run the same unavailable upstream call.
 
 For paginated lists, use only the documented cursor parameter for that endpoint and stop at the requested sample size. Calculate `(likes + comments) / followers * 100` only when all inputs are present and followers are positive; label it as an engagement estimate.

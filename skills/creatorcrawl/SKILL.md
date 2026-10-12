@@ -1,6 +1,6 @@
 ---
 name: creatorcrawl
-description: Fetch current public social data, research creators, audit profiles, analyse posts, and generate API integrations for TikTok, Instagram, YouTube, LinkedIn, Twitter/X, and Reddit using the CreatorCrawl REST API.
+description: Fetch current public social data, research creators, audit profiles, analyse posts, and generate API integrations for TikTok, Instagram, YouTube, LinkedIn, Twitter/X, Reddit, and Facebook using the CreatorCrawl REST API.
 ---
 
 # CreatorCrawl
@@ -33,6 +33,7 @@ Load only the reference for the requested platform:
 - [LinkedIn](references/linkedin.md): profiles, companies, posts, ads.
 - [Twitter/X](references/twitter.md): profiles, tweets, video search, transcripts, communities.
 - [Reddit](references/reddit.md): search, subreddits, posts, comments.
+- [Facebook](references/facebook.md): pages, posts, reels, comments, transcripts, groups, events, Marketplace, Ad Library.
 
 The references include paths, required and optional parameters, and credit costs. They are a snapshot; the [live OpenAPI schema](https://api.creatorcrawl.com/openapi.json) is authoritative for current endpoint parameters and response schemas. [Interactive API docs](https://api.creatorcrawl.com/docs) need no authentication to read. Do not guess CLI command names or use upstream-provider URLs.
 
