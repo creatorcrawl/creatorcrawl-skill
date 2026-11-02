@@ -30,7 +30,7 @@ Load only the reference for the requested platform:
 - [TikTok](references/tiktok.md): profiles, videos, transcripts, comments, search, sounds, trends.
 - [Instagram](references/instagram.md): profiles, posts, reels, comments, transcripts, highlights.
 - [YouTube](references/youtube.md): channels, videos, shorts, transcripts, comments, playlists, search.
-- [LinkedIn](references/linkedin.md): profiles, companies, posts, ads.
+- [LinkedIn](references/linkedin.md): profiles, people and lead search, email lookup, companies and account insights, posts, comments, reactions, jobs, groups, services, ads.
 - [Twitter/X](references/twitter.md): profiles, tweets, video search, transcripts, communities.
 - [Reddit](references/reddit.md): search, subreddits, posts, comments.
 - [Facebook](references/facebook.md): pages, posts, reels, comments, transcripts, groups, events, Marketplace, Ad Library.
